@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="he"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Heebo', sans-serif;
+            background-color: #f9f9ff;
+        }
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "cloud-white": "#ffffff",
+                        "surface-dim": "#cfdaf2",
+                        "inverse-on-surface": "#ecf1ff",
+                        "tertiary-fixed": "#ffd9e4",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#6f787e",
+                        "sunshine-yellow": "#facc15",
+                        "on-surface": "#111c2d",
+                        "on-primary-fixed": "#001e2b",
+                        "secondary-container": "#fed01b",
+                        "sunset-orange": "#fb923c",
+                        "on-tertiary-container": "#a40062",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#dee8ff",
+                        "surface-bright": "#f9f9ff",
+                        "outline-variant": "#bec8ce",
+                        "on-secondary-fixed-variant": "#574500",
+                        "secondary-fixed": "#ffe083",
+                        "on-background": "#111c2d",
+                        "tertiary-container": "#ffb3cf",
+                        "on-primary-container": "#005b78",
+                        "secondary": "#735c00",
+                        "primary-fixed": "#c0e8ff",
+                        "surface-container-highest": "#d8e3fb",
+                        "surface-variant": "#d8e3fb",
+                        "summer-sky": "#7dd3fc",
+                        "on-tertiary-fixed-variant": "#8c0053",
+                        "on-tertiary-fixed": "#3e0022",
+                        "on-primary-fixed-variant": "#004d66",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#231b00",
+                        "inverse-primary": "#7bd1fa",
+                        "tertiary": "#b4136d",
+                        "background": "#f9f9ff",
+                        "on-secondary-container": "#6f5900",
+                        "surface-container-low": "#f0f3ff",
+                        "surface": "#f9f9ff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb0cd",
+                        "vibrant-pink": "#ec4899",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#006686",
+                        "primary-fixed-dim": "#7bd1fa",
+                        "deep-slate": "#1e293b",
+                        "inverse-surface": "#263143",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#e7eeff",
+                        "on-surface-variant": "#3f484e",
+                        "secondary-fixed-dim": "#eec200",
+                        "primary-container": "#7dd3fc",
+                        "on-error": "#ffffff",
+                        "primary": "#006686"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "gutter": "20px",
+                        "unit": "4px",
+                        "xl": "32px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "margin": "24px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "h1-display": ["Heebo"],
+                        "caption-bold": ["Heebo"],
+                        "h2-section": ["Heebo"],
+                        "body-medium": ["Heebo"]
+                    },
+                    "fontSize": {
+                        "h1-display": ["36px", {"lineHeight": "48px", "fontWeight": "800"}],
+                        "caption-bold": ["12px", {"lineHeight": "16px", "fontWeight": "700"}],
+                        "h2-section": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-medium": ["16px", {"lineHeight": "24px", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col text-right">
+<!-- TopNavBar -->
+<header class="bg-white/70 dark:bg-slate-950/70 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm flex flex-row justify-between items-center w-full px-6 py-3">
+<div class="flex items-center gap-4">
+<span class="text-2xl font-black text-sky-500 tracking-tight font-h1-display">My Camp</span>
+<div class="hidden md:flex bg-surface-container rounded-full px-4 py-2 items-center gap-2">
+<span class="material-symbols-outlined text-outline text-lg">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-64 text-right" placeholder="חיפוש מהיר..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 rounded-full hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors active:scale-95 duration-200 text-slate-500">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-2 rounded-full hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors active:scale-95 duration-200 text-slate-500">
+<span class="material-symbols-outlined">chat</span>
+</button>
+<button class="p-2 rounded-full hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors active:scale-95 duration-200 text-slate-500 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-vibrant-pink rounded-full"></span>
+</button>
+<div class="h-10 w-10 rounded-full overflow-hidden border-2 border-primary-container mr-2">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEh0gsl9j__wqQOt769Fkes2YbxeYq_gEPSCBwlVuu9pqmnSmB8_cirUNDEbLnbmQWe3JyaenZ3oCOgADV9230NGVNB0v60PYFx1UGcXw5NdZQhzZR_7Po0ckswf6Q93aq7Zyt2Or12gLb_RjX8bSf9YcKiLFNVmrWra60Ng0YTsNZfyn4JOtmdaxntV6eWhgzsth2wXtX-mXKC7lIblt3tFDYDCkJoldjAHVxvwjvQq5JQ3aCH6UCFNNCEt-MW6SvNm1_gBKaJAo"/>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar (Right) -->
+<aside class="fixed top-0 right-0 h-full w-64 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col py-6 px-4 z-30 pt-20">
+<div class="flex items-center gap-3 mb-8 px-2">
+<div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined">campaign</span>
+</div>
+<div class="text-right">
+<h2 class="text-xl font-bold text-sky-500 font-h2-section">My Camp</h2>
+<p class="text-xs text-slate-500">ניהול קיץ 2024</p>
+</div>
+</div>
+<nav class="flex-1 space-y-2 overflow-y-auto no-scrollbar">
+<div class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer hover:translate-x-[-4px]">
+<span class="material-symbols-outlined">home</span>
+<span class="font-body-medium">דף הבית</span>
+</div>
+<div class="flex items-center gap-3 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-300 rounded-lg px-4 py-3 font-bold border-r-4 border-sky-500 cursor-pointer hover:translate-x-[-4px] transition-all">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-medium">דאשבורד סגל</span>
+</div>
+<div class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer hover:translate-x-[-4px]">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-body-medium">ניהול ידע</span>
+</div>
+<div class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer hover:translate-x-[-4px]">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-body-medium">ניהול תקציב</span>
+</div>
+<div class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer hover:translate-x-[-4px]">
+<span class="material-symbols-outlined">report_problem</span>
+<span class="font-body-medium">דיווח אירוע</span>
+</div>
+<div class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer hover:translate-x-[-4px]">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-medium">הגדרות</span>
+</div>
+</nav>
+<div class="mt-auto border-t border-slate-100 pt-4">
+<button class="w-full bg-sky-500 text-white rounded-xl py-3 font-bold flex items-center justify-center gap-2 hover:bg-sky-600 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined">add</span>
+<span>פעילות חדשה</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 mr-64 ml-80 overflow-y-auto p-6 transition-all duration-300">
+<div class="max-w-4xl mx-auto space-y-gutter">
+<!-- Updates Header -->
+<div class="flex justify-between items-end mb-6">
+<div class="text-right">
+<h1 class="text-h1-display font-h1-display text-deep-slate">עדכונים יומיים מהמשלחת</h1>
+<p class="text-slate-500 text-lg">צפו בנעשה בשטח ושתפו רגעים חדשים</p>
+</div>
+</div>
+<!-- Upload Card -->
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-gutter flex items-center justify-between transition-all hover:shadow-md">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-vibrant-pink/10 flex items-center justify-center text-vibrant-pink">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add_a_photo</span>
+</div>
+<div class="text-right">
+<p class="font-bold text-deep-slate text-lg">שתפו עדכון חדש</p>
+<p class="text-sm text-slate-400">תמונות, סרטונים או הודעות טקסט</p>
+</div>
+</div>
+<button class="bg-vibrant-pink text-white px-6 py-3 rounded-full font-bold shadow-lg shadow-pink-200 hover:bg-pink-600 transition-all active:scale-95">
+                    העלאת עדכון
+                </button>
+</div>
+<!-- Feed Posts -->
+<div class="space-y-gutter">
+<!-- Post 1 -->
+<article class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden text-right">
+<div class="p-md flex items-center justify-between">
+<div class="flex items-center gap-3">
+<img alt="Staff Avatar" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYLmKbyF6xkwcdVm3iCpUA03uZpUzKEBGJTX5P11Gk3Y070bXwbt5FPs1VDy4qLIICp0Cp9VqlUcQ95xl6HxjVXXJxmqpssQHsLh3L0X0TO5TZ2zV8klQPc6oWjXH0_EGiLNOziQoHfDgmgCJojIW3FQ29K1BDQRuSVpBLSxgdYZmqIuzk_BqVNcW9IkzQU2g-_RBkUw87a0lrikQsrKrVH0Umzx1tJ2U0umM5alGK0IiF_rORkUexcwwolZ1s5LLOPB8tcWTK_TY"/>
+<div class="text-right">
+<h4 class="font-bold text-deep-slate">מיכל לוי</h4>
+<p class="text-xs text-slate-400">לפני 20 דקות • מחנה דרום</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300">more_horiz</span>
+</div>
+<div class="px-md pb-sm text-right">
+<p class="text-on-surface leading-relaxed">הבוקר התחלנו את פעילות הניווט ביער. החניכים הפגינו יכולות מדהימות ושיתוף פעולה יוצא דופן!</p>
+</div>
+<div class="h-80 w-full bg-slate-100 relative">
+<img alt="Camp Activity" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoX8BPWekSXpRJ9-qop2JGZglB0Hl7P2FdYYSgbOBGQa3WxWGXIjXprFbjm81LjeJzwx0xnfu5ryoJ9E9JMP9l7yECKOv-yCcaCd8m9RjZ7eA-VtTqI3nJMgZGxidB8rSpiEshh4MaNhSZq0QSF5XJhhSvVXDgd1F4yWQGG_MU4lTHSmyQ_w47PQG2jb4ejD16I6ZDa523kqtqRHDUiYXCDk4f9AZGudHFQcpPWZO9e_bCDMDI9aa_SX_RE1woCl8IUvl5ieB2Iw8"/>
+</div>
+<div class="p-md flex items-center justify-between border-t border-slate-50">
+<div class="flex gap-4">
+<button class="flex items-center gap-1 text-slate-500 hover:text-vibrant-pink transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">favorite</span>
+<span class="text-xs">24</span>
+</button>
+<button class="flex items-center gap-1 text-slate-500 hover:text-sky-500 transition-colors">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="text-xs">5</span>
+</button>
+</div>
+<button class="text-slate-400 hover:text-sky-500 transition-colors">
+<span class="material-symbols-outlined">share</span>
+</button>
+</div>
+</article>
+<!-- Post 2 -->
+<article class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden text-right">
+<div class="p-md flex items-center justify-between">
+<div class="flex items-center gap-3">
+<img alt="Staff Avatar" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDggJtB58nUphBaSdZ4LD9ySlSEP1-zqDHHlIU4fZfL8L0gPnwHX6Jw5g2f_MCOWFcp1trzZlMeEDprhhWBgUD963dEj5AfC7aLxcSDZ2jgr0WMfQMIC2b9V-g8M0ItDtCmFCovZPYh8eyttz1VjEDnBLYgJsuMtG77K595L9qsUUyoGC-ZjrrViv-cm3LB37H9Oc2OqHd8O4VZhSJKclvtmStWm8pUE9g-dooaV7vq904NoHCRrfEehWkcF5WiF4SogyeFD12cUH8"/>
+<div class="text-right">
+<h4 class="font-bold text-deep-slate">דניאל כהן</h4>
+<p class="text-xs text-slate-400">לפני שעתיים • מפקדת המשלחת</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300">more_horiz</span>
+</div>
+<div class="px-md pb-md text-right">
+<p class="text-on-surface leading-relaxed font-bold text-sky-600 mb-2">📢 עדכון בטיחות חשוב</p>
+<p class="text-on-surface leading-relaxed">נא לשים לב לשינוי בשעות ארוחת הערב בגלל מזג האוויר. ניפגש בחדר האוכל המרכזי בשעה 19:30 בדיוק.</p>
+</div>
+</article>
+</div>
+</div>
+</main>
+<!-- Left Sidebar (Widgets) - Flipped for RTL -->
+<aside class="fixed top-20 left-0 h-[calc(100vh-5rem)] w-80 bg-surface-container-low border-r border-slate-200/50 p-6 flex flex-col gap-gutter z-30">
+<!-- Tasks Widget -->
+<div class="bg-white rounded-xl p-md shadow-sm border border-slate-100 text-right">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-deep-slate">משימות פתוחות</h3>
+<span class="bg-sky-100 text-sky-700 text-xs font-bold px-2 py-1 rounded-full">8 משימות</span>
+</div>
+<div class="space-y-4">
+<div class="space-y-1">
+<div class="flex justify-between text-xs font-medium text-slate-500">
+<span>צ'ק-אין חניכים</span>
+<span>85%</span>
+</div>
+<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+<div class="bg-summer-sky h-full" style="width: 85%"></div>
+</div>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-xs font-medium text-slate-500">
+<span>איסוף ציוד ערב</span>
+<span>30%</span>
+</div>
+<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+<div class="bg-sunset-orange h-full" style="width: 30%"></div>
+</div>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-xs font-medium text-slate-500">
+<span>דיווח נוכחות סגל</span>
+<span>100%</span>
+</div>
+<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full" style="width: 100%"></div>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 text-sky-500 text-sm font-bold hover:underline">לכל המשימות &gt;</button>
+</div>
+<!-- Calendar Widget -->
+<div class="bg-white rounded-xl p-md shadow-sm border border-slate-100 flex-1 text-right">
+<h3 class="font-bold text-deep-slate mb-4">לו"ז יומי - 15 יולי</h3>
+<div class="space-y-4">
+<div class="flex gap-3 items-start">
+<div class="text-sky-500 font-bold text-xs pt-1">16:00</div>
+<div class="text-right border-r-2 border-sky-100 pr-3">
+<p class="text-sm font-bold text-deep-slate">סדנת יצירה</p>
+<p class="text-xs text-slate-400">חטיבה תחתונה</p>
+</div>
+</div>
+<div class="flex gap-3 items-start">
+<div class="text-slate-400 font-bold text-xs pt-1">17:30</div>
+<div class="text-right border-r-2 border-slate-100 pr-3">
+<p class="text-sm font-bold text-slate-500">זמן חופשי</p>
+<p class="text-xs text-slate-300">בריכה/מגרשים</p>
+</div>
+</div>
+<div class="flex gap-3 items-start">
+<div class="text-slate-400 font-bold text-xs pt-1">19:30</div>
+<div class="text-right border-r-2 border-slate-100 pr-3">
+<p class="text-sm font-bold text-slate-500">ארוחת ערב</p>
+<p class="text-xs text-slate-300">חדר אוכל מרכזי</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Emergency Button -->
+<button class="bg-error text-white w-full py-4 rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">emergency_home</span>
+            דיווח אירוע חריג
+        </button>
+</aside>
+</div>
+</body></html>

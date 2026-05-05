@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="he"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Heebo', sans-serif;
+            background-color: #f9f9ff;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffd9e4",
+                        "summer-sky": "#7dd3fc",
+                        "primary-fixed-dim": "#7bd1fa",
+                        "primary-fixed": "#c0e8ff",
+                        "on-tertiary-container": "#a40062",
+                        "surface-container-low": "#f0f3ff",
+                        "primary": "#006686",
+                        "on-background": "#111c2d",
+                        "surface-tint": "#006686",
+                        "on-tertiary-fixed-variant": "#8c0053",
+                        "outline": "#6f787e",
+                        "on-secondary-fixed": "#231b00",
+                        "on-primary-fixed": "#001e2b",
+                        "tertiary": "#b4136d",
+                        "tertiary-fixed-dim": "#ffb0cd",
+                        "inverse-surface": "#263143",
+                        "on-error": "#ffffff",
+                        "background": "#f9f9ff",
+                        "surface-dim": "#cfdaf2",
+                        "on-primary-container": "#005b78",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#e7eeff",
+                        "vibrant-pink": "#ec4899",
+                        "surface-bright": "#f9f9ff",
+                        "secondary": "#735c00",
+                        "sunset-orange": "#fb923c",
+                        "secondary-fixed": "#ffe083",
+                        "tertiary-container": "#ffb3cf",
+                        "on-primary-fixed-variant": "#004d66",
+                        "surface-variant": "#d8e3fb",
+                        "on-tertiary-fixed": "#3e0022",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed-variant": "#574500",
+                        "inverse-primary": "#7bd1fa",
+                        "on-surface": "#111c2d",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#fed01b",
+                        "outline-variant": "#bec8ce",
+                        "surface-container-high": "#dee8ff",
+                        "surface": "#f9f9ff",
+                        "on-surface-variant": "#3f484e",
+                        "primary-container": "#7dd3fc",
+                        "error": "#ba1a1a",
+                        "cloud-white": "#ffffff",
+                        "secondary-fixed-dim": "#eec200",
+                        "on-secondary-container": "#6f5900",
+                        "inverse-on-surface": "#ecf1ff",
+                        "on-secondary": "#ffffff",
+                        "sunshine-yellow": "#facc15",
+                        "surface-container-lowest": "#ffffff",
+                        "deep-slate": "#1e293b",
+                        "surface-container-highest": "#d8e3fb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "16px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin": "24px",
+                        "xs": "4px",
+                        "unit": "4px",
+                        "gutter": "20px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "h1-display": ["Heebo"],
+                        "caption-bold": ["Heebo"],
+                        "h2-section": ["Heebo"],
+                        "body-medium": ["Heebo"]
+                    },
+                    "fontSize": {
+                        "h1-display": ["36px", {"lineHeight": "48px", "fontWeight": "800"}],
+                        "caption-bold": ["12px", {"lineHeight": "16px", "fontWeight": "700"}],
+                        "h2-section": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-medium": ["16px", {"lineHeight": "24px", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-white/80 backdrop-blur-md text-sky-400 font-medium docked full-width top-0 z-50 sticky border-b border-slate-100 shadow-sm flex flex-row-reverse justify-between items-center w-full px-6 py-3">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+<div class="text-right">
+<p class="text-xs font-bold text-slate-800 leading-none">מאי עמודי</p>
+<p class="text-[10px] text-slate-500 leading-none">ראש משלחת</p>
+</div>
+<img alt="Staff Profile" class="w-8 h-8 rounded-full object-cover border-2 border-summer-sky" data-alt="A professional and friendly portrait of a young woman with a warm smile, wearing a casual professional outfit. The background is a soft-focus summer camp setting with blurred greenery and sunlight filtering through trees. The lighting is bright and airy, following a modern light-mode aesthetic with vibrant sky blue accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-3w-cIPV5AJYDLd6MKiEES6jA8XPe-dD6mZQqK05E9CaW6VX_9UT4ZJChBC7rYTtLzdXR6L2HQkCg7Spu29Y575yalj1cD9NHO4BghKLMKUyThUFFKMLbO1wp1J-hfJbCAMJqIqFKRB9VZkrenqEKHhOHgbyvuzL2GKliMq7yrhHS4f7gqoZJBb1MhJsSadZqAeaeXIuhbJF7lud49kAmo_wN_cnr9v1uCm7soxv_GerDuke4ag3S5vNn1MHQ4TXJCe1SVl6eoes"/>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-slate-500 hover:bg-sky-50 rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-sky-50 rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</div>
+<div class="flex-1 max-w-xl px-12">
+<div class="relative group">
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-summer-sky">search</span>
+<input class="w-full bg-slate-50 border-none rounded-full py-2 pr-10 pl-4 text-sm focus:ring-2 focus:ring-summer-sky/30 transition-all outline-none" placeholder="חיפוש חניכים, משימות או דוחות..." type="text"/>
+</div>
+</div>
+<div class="text-2xl font-black text-sky-500 tracking-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-3xl" data-icon="forest" style="font-variation-settings: 'FILL' 1;">forest</span>
+            My Camp
+        </div>
+</header>
+<div class="flex">
+<!-- SideNavBar -->
+<aside class="fixed right-0 top-0 h-full w-64 bg-white border-l border-slate-100 z-40 shadow-xl flex flex-col pt-20">
+<div class="px-6 mb-8">
+<h2 class="text-xl font-bold text-slate-800">ניהול הקייטנה</h2>
+<p class="text-xs text-slate-500">צוות ניהול</p>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-medium">בית</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-pink-50 text-vibrant-pink border-r-4 border-vibrant-pink font-bold rounded-l-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-medium">לוח בקרה</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="auto_stories">auto_stories</span>
+<span class="font-medium">ניהול ידע</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-medium">ניהול תקציב</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="report_problem">report_problem</span>
+<span class="font-medium">דיווח אירועים</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium">הגדרות</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-50">
+<button class="w-full py-3 bg-summer-sky text-white font-bold rounded-2xl shadow-lg shadow-summer-sky/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                    פעולה מהירה
+                </button>
+</div>
+<div class="p-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 text-sm hover:text-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="help">help</span>
+                    עזרה
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-error text-sm hover:bg-error/5 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="logout">logout</span>
+                    התנתקות
+                </a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="mr-64 flex-1 p-8 bg-background">
+<div class="max-w-7xl mx-auto space-y-8">
+<!-- Welcome & Header -->
+<div class="flex justify-between items-end">
+<div>
+<h1 class="font-h1-display text-h1-display text-deep-slate">שלום, מאי 👋</h1>
+<p class="text-slate-500 font-body-medium">הנה מה שקורה היום בקייטנה</p>
+</div>
+<div class="flex gap-3">
+<div class="bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-2">
+<span class="material-symbols-outlined text-vibrant-pink" data-icon="calendar_today">calendar_today</span>
+<span class="font-bold text-slate-700">14 ביולי, 2024</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions Bento -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<button class="group bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-vibrant-pink/30 hover:shadow-xl transition-all duration-300 text-right active:scale-95">
+<div class="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-vibrant-pink" data-icon="account_balance_wallet" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<h3 class="font-bold text-slate-800">דו"ח תקציב</h3>
+<p class="text-xs text-slate-500 mt-1">צפייה ועדכון הוצאות</p>
+</button>
+<button class="group bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-summer-sky/30 hover:shadow-xl transition-all duration-300 text-right active:scale-95">
+<div class="w-12 h-12 bg-sky-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-summer-sky" data-icon="emergency" style="font-variation-settings: 'FILL' 1;">emergency</span>
+</div>
+<h3 class="font-bold text-slate-800">דיווח אירוע</h3>
+<p class="text-xs text-slate-500 mt-1">דיווח בטיחותי מיידי</p>
+</button>
+<button class="group bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-sunset-orange/30 hover:shadow-xl transition-all duration-300 text-right active:scale-95">
+<div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-sunset-orange" data-icon="database" style="font-variation-settings: 'FILL' 1;">database</span>
+</div>
+<h3 class="font-bold text-slate-800">מאגר פעילויות</h3>
+<p class="text-xs text-slate-500 mt-1">חיפוש והפעלת תכנים</p>
+</button>
+<button class="group bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-sunshine-yellow/30 hover:shadow-xl transition-all duration-300 text-right active:scale-95">
+<div class="w-12 h-12 bg-yellow-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-sunshine-yellow" data-icon="upload" style="font-variation-settings: 'FILL' 1;">upload</span>
+</div>
+<h3 class="font-bold text-slate-800">העלאת פוסט</h3>
+<p class="text-xs text-slate-500 mt-1">עדכון הורים ברשתות</p>
+</button>
+</div>
+<!-- Info Widgets Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Budget Usage -->
+<div class="md:col-span-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-slate-400" data-icon="trending_up">trending_up</span>
+<h3 class="font-bold text-slate-800">ניצול תקציב</h3>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="text-3xl font-black text-deep-slate">85%</span>
+<span class="text-xs text-slate-400">מתוך ₪50,000</span>
+</div>
+<div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+<div class="bg-vibrant-pink h-full w-[85%] rounded-full"></div>
+</div>
+</div>
+<p class="text-xs text-vibrant-pink font-bold mt-4">חריגה קלה בסעיף מזון</p>
+</div>
+<!-- Tasks and Inquiries -->
+<div class="md:col-span-8 grid grid-cols-3 gap-gutter">
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center">
+<p class="text-slate-500 text-sm mb-1">משימות פתוחות</p>
+<p class="text-3xl font-black text-deep-slate">12</p>
+<span class="inline-block mt-2 px-3 py-1 bg-error/10 text-error text-[10px] font-bold rounded-full">4 בעדיפות גבוהה</span>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center">
+<p class="text-slate-500 text-sm mb-1">פניות הורים</p>
+<p class="text-3xl font-black text-deep-slate">4</p>
+<span class="inline-block mt-2 px-3 py-1 bg-summer-sky/10 text-summer-sky text-[10px] font-bold rounded-full">ממתין למענה</span>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center">
+<p class="text-slate-500 text-sm mb-1">אירועי בטיחות</p>
+<p class="text-3xl font-black text-deep-slate">0</p>
+<span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-600 text-[10px] font-bold rounded-full">הכל תקין</span>
+</div>
+</div>
+</div>
+<!-- Student List Table -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+<div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+<h2 class="text-h2-section font-h2-section text-deep-slate">סטטוס חיוני - חניכים</h2>
+<button class="text-summer-sky text-sm font-bold flex items-center gap-1 hover:underline">
+                            צפייה בכל הרשימה
+                            <span class="material-symbols-outlined text-sm" data-icon="chevron_left">chevron_left</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-right">
+<thead>
+<tr class="text-slate-400 text-sm border-b border-slate-50">
+<th class="px-8 py-4 font-bold">שם החניך</th>
+<th class="px-8 py-4 font-bold">מידע קריטי (אלרגיות)</th>
+<th class="px-8 py-4 font-bold">סטטוס מסמכים</th>
+<th class="px-8 py-4 font-bold">פעולות</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-50">
+<tr class="hover:bg-slate-50 transition-colors group">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A close-up portrait of a cheerful young girl with braided hair and a bright smile, representing a camper in a sunny outdoor setting. The lighting is warm and natural, emphasizing a safe and joyful camp environment. High-contrast sky blue accents frame the composition." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBA7ZjdCoZp_-8Vo9LJeS1Vu7_z-6uh_afOHGyi4Mu8n63NP4U7xsylLVVOfw-_vJCG1NVorPViDTys9wrghYsylzMcRvPeOPEXVQjcHLD1--hfXS2jdsOhKszpi_1jZ0MRiPFPXXK6ceoNfTDkZ6a1w68OOrzHfP9CuoLKndz2Z7cK9kJ2lnoyVO4MgyRKhTrsrWReNPSd9SChir7bcOnXEyun8EQB2uuEuVVzB1dfAQbCpFSN6k--r2VSQMVadagb1VamCYGQt14"/>
+<div>
+<p class="font-bold text-slate-800">מאיה לוי</p>
+<p class="text-xs text-slate-400">שבט ג' - אוהל 4</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-5">
+<span class="px-3 py-1 bg-red-100 text-error text-xs font-bold rounded-full border border-error/10">אלרגיה לבוטנים</span>
+</td>
+<td class="px-8 py-5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 bg-green-500 rounded-full"></div>
+<span class="text-sm text-slate-600 font-medium">מאושר</span>
+</div>
+</td>
+<td class="px-8 py-5">
+<button class="p-2 text-slate-400 hover:text-summer-sky transition-colors">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors group">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A portrait of a young boy with curly hair and a curious expression, wearing a colorful t-shirt. The background shows a wooden cabin and trees, blurred softly. The atmosphere is vibrant and adventurous, with bright sunlight creating a high-energy summer feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAefFnPBoMWEPxPk5l4CQHYtIXKo2ZyYTb6hw-L1nPw6Rz4cRCEalsM3cesxXx81DHsoHZ3zx8UG9jehLKumyw56PQLFiAciBcZ3QyvSni_NWYuPxtahInPbO1R7D-j2uoQzGBFOuMK7PgsDjZc9HmRCGWfhxCX_9S5afQC8yYcA1QvJooPQeinT1JQnOSkxvetWPVqIUmPfCgzxQi-iLA9pIAa5dw0SZ_WII5713hYK0Km2ZauY99_VjXJ-cuusn4UmqhedBieP6c"/>
+<div>
+<p class="font-bold text-slate-800">נועם כהן</p>
+<p class="text-xs text-slate-400">שבט ג' - אוהל 2</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-5">
+<span class="text-xs text-slate-400">אין מידע רפואי חריג</span>
+</td>
+<td class="px-8 py-5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 bg-orange-400 rounded-full"></div>
+<span class="text-sm text-slate-600 font-medium">חסרה הצהרת בריאות</span>
+</div>
+</td>
+<td class="px-8 py-5">
+<button class="p-2 text-slate-400 hover:text-summer-sky transition-colors">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors group">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A candid shot of a happy child laughing during a camp activity. The lighting is bright and summery, with soft shadows. The overall aesthetic is modern and professional, utilizing the summer sky blue and vibrant pink palette in the background elements." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxOY1Plec0XSjRE0Ujtp5BACFBYCFiQJNZ83hq0apzjVyE6fY4oDbdt16uXjfx0nOoDIAmVy57zIk6lsDxNhDhLfejyfdMY72t9B-H9R_KplZRD559l_uaB0lwcRTTgP69hHsFmlrCieJK6pwANNm4hcKzpbasDdVeybpBraIUn_DXqgW3SEG-Fio4e_BFhg6r0e4UCN_k1v2nVbKMMf-3NCxDDbqgbMAVoSKjH4HJQeINBpGRCDdd4bbHwFUR3TDkVIsWEzm9Nvw"/>
+<div>
+<p class="font-bold text-slate-800">עידן מזרחי</p>
+<p class="text-xs text-slate-400">שבט ד' - אוהל 1</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-5">
+<span class="px-3 py-1 bg-red-100 text-error text-xs font-bold rounded-full border border-error/10">אלרגיה ללקטוז</span>
+</td>
+<td class="px-8 py-5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 bg-green-500 rounded-full"></div>
+<span class="text-sm text-slate-600 font-medium">מאושר</span>
+</div>
+</td>
+<td class="px-8 py-5">
+<button class="p-2 text-slate-400 hover:text-summer-sky transition-colors">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Contextual FAB (Hidden as per requirement for Staff Dashboard) -->
+</body></html>
