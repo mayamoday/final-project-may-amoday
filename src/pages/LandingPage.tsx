@@ -26,7 +26,7 @@ export default function LandingPage() {
           <Card
             variant="glass"
             className="p-10 rounded-lg group hover:border-summer-sky transition-all duration-300 text-right flex flex-col items-start cursor-pointer"
-            onClick={() => navigate('/feed')}
+            onClick={() => navigate('/login')}
           >
             <div className="w-14 h-14 rounded-md bg-summer-sky/10 text-summer-sky flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Icon name="groups" className="text-4xl" />
@@ -42,7 +42,7 @@ export default function LandingPage() {
           <Card
             variant="glass"
             className="p-10 rounded-lg group hover:border-vibrant-pink transition-all duration-300 text-right flex flex-col items-start cursor-pointer"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/login')}
           >
             <div className="w-14 h-14 rounded-md bg-vibrant-pink/10 text-vibrant-pink flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Icon name="admin_panel_settings" className="text-4xl" />

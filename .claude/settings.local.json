@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(touch \"/c/Users/maysy/OneDrive - OAC - Ono Academic College/לימודים/שנה ב/סמסטר ב/פרוייקט מסכם פיתוח אתרים/design/my-react-app/src/pages/KnowledgeBasePage.tsx\")",
+      "Bash(touch \"/c/Users/maysy/OneDrive - OAC - Ono Academic College/לימודים/שנה ב/סמסטר ב/פרוייקט מסכם פיתוח אתרים/design/my-react-app/src/pages/IncidentReportPage.tsx\")",
+      "Bash(touch \"/c/Users/maysy/OneDrive - OAC - Ono Academic College/לימודים/שנה ב/סמסטר ב/פרוייקט מסכם פיתוח אתרים/design/my-react-app/src/pages/TasksManagementPage.tsx\")",
+      "Bash(touch \"/c/Users/maysy/OneDrive - OAC - Ono Academic College/לימודים/שנה ב/סמסטר ב/פרוייקט מסכם פיתוח אתרים/design/my-react-app/src/pages/SettingsPage.tsx\")"
+    ]
+  }
+}

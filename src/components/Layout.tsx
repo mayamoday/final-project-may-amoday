@@ -1,19 +1,66 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import Icon from './Icon';
 import Avatar from './Avatar';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
-const navItems = [
-  { icon: 'home', label: 'דף הבית', path: '/feed' },
-  { icon: 'dashboard', label: 'דאשבורד סגל', path: '/dashboard' },
-  { icon: 'payments', label: 'ניהול תקציב', path: '/expenses' },
-  { icon: 'group', label: 'חניכים', path: '/camper/1' },
-  { icon: 'report_problem', label: 'דיווח אירוע', path: '/incidents' },
-  { icon: 'settings', label: 'הגדרות', path: '/settings' },
-];
+// ─── Nav definition ───────────────────────────────────────────────────────────
 
-const USER_AVATAR = 'https://ui-avatars.com/api/?name=Mai+Amudi&background=7dd3fc&color=fff&size=64';
+interface NavItem {
+  icon: string;
+  label: string;
+  path: string;
+  roles: Array<'staff' | 'camper'>;
+}
+
+function buildNavItems(userId: string | undefined): NavItem[] {
+  return [
+    { icon: 'home',           label: 'דף הבית',      path: '/feed',                      roles: ['staff', 'camper'] },
+    { icon: 'dashboard',      label: 'דאשבורד סגל',  path: '/dashboard',                  roles: ['staff']           },
+    { icon: 'payments',       label: 'ניהול תקציב',  path: '/expenses',                   roles: ['staff']           },
+    { icon: 'group',          label: 'חניכים',        path: '/campers',                    roles: ['staff']           },
+    { icon: 'person',         label: 'הפרופיל שלי',  path: `/camper/${userId ?? ''}`,     roles: ['camper']          },
+    { icon: 'menu_book',      label: 'מאגר ידע',      path: '/knowledge',                  roles: ['staff']           },
+    { icon: 'checklist',      label: 'משימות',         path: '/tasks',                      roles: ['staff']           },
+    { icon: 'report_problem', label: 'דיווח אירוע',   path: '/incidents',                  roles: ['staff']           },
+    { icon: 'settings',       label: 'הגדרות',         path: '/settings',                   roles: ['staff', 'camper'] },
+  ];
+}
+
+// ─── SideNav ──────────────────────────────────────────────────────────────────
 
 export function SideNav() {
+  const { signOut, user, userRole } = useAuth();
+  const navigate = useNavigate();
+  const [displayName, setDisplayName] = useState('...');
+
+  // Fetch display name from the correct table once role is known
+  useEffect(() => {
+    if (!user || !userRole) return;
+    const table = userRole === 'staff' ? 'staff' : 'camper';
+    supabase
+      .from(table)
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.full_name) setDisplayName(data.full_name);
+      });
+  }, [user, userRole]);
+
+  const roleLabel = userRole === 'staff' ? 'סגל מחנה' : userRole === 'camper' ? 'הורה / חניך' : '';
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=7dd3fc&color=fff&size=64`;
+
+  const navItems = buildNavItems(user?.id).filter(
+    (item) => !userRole || item.roles.includes(userRole),
+  );
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   return (
     <aside className="fixed top-0 right-0 h-screen w-64 bg-white border-l border-slate-100 flex flex-col z-50 shadow-xl">
       {/* Logo */}
@@ -29,10 +76,10 @@ export function SideNav() {
 
       {/* User */}
       <div className="flex items-center gap-3 px-6 py-4 bg-slate-50/50 border-b border-slate-100">
-        <Avatar src={USER_AVATAR} size="md" className="border-2 border-summer-sky" />
+        <Avatar src={avatarUrl} size="md" className="border-2 border-summer-sky" />
         <div className="text-right flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-800 truncate">מאי עמודי</p>
-          <p className="text-[10px] text-slate-500">ראש משלחת</p>
+          <p className="text-sm font-bold text-slate-800 truncate">{displayName}</p>
+          <p className="text-[10px] text-slate-500">{roleLabel}</p>
         </div>
       </div>
 
@@ -52,7 +99,11 @@ export function SideNav() {
           >
             {({ isActive }) => (
               <>
-                <Icon name={item.icon} fill={isActive} className={`text-xl ${isActive ? 'text-vibrant-pink' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                <Icon
+                  name={item.icon}
+                  fill={isActive}
+                  className={`text-xl ${isActive ? 'text-vibrant-pink' : 'text-slate-400 group-hover:text-slate-600'}`}
+                />
                 <span>{item.label}</span>
               </>
             )}
@@ -60,13 +111,15 @@ export function SideNav() {
         ))}
       </nav>
 
-      {/* Quick Action */}
-      <div className="px-4 pb-2">
-        <button className="w-full bg-summer-sky text-white font-bold py-3 rounded-2xl shadow-lg shadow-sky-200/50 hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm">
-          <Icon name="add" className="text-lg" />
-          <span>פעולה מהירה</span>
-        </button>
-      </div>
+      {/* Quick Action — staff only */}
+      {userRole === 'staff' && (
+        <div className="px-4 pb-2">
+          <button className="w-full bg-summer-sky text-white font-bold py-3 rounded-2xl shadow-lg shadow-sky-200/50 hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm">
+            <Icon name="add" className="text-lg" />
+            <span>פעולה מהירה</span>
+          </button>
+        </div>
+      )}
 
       {/* Bottom links */}
       <div className="border-t border-slate-100 p-3 space-y-1">
@@ -74,16 +127,23 @@ export function SideNav() {
           <Icon name="help" className="text-lg" />
           <span>עזרה ותמיכה</span>
         </a>
-        <a href="/" className="flex items-center gap-3 px-4 py-2.5 text-red-400 hover:bg-red-50 rounded-xl transition-colors text-sm">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:bg-red-50 rounded-xl transition-colors text-sm"
+        >
           <Icon name="logout" className="text-lg" />
           <span>התנתקות</span>
-        </a>
+        </button>
       </div>
     </aside>
   );
 }
 
+// ─── TopBar ───────────────────────────────────────────────────────────────────
+
 export function TopBar() {
+  const { user } = useAuth();
+  const topAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.email ?? 'U')}&background=7dd3fc&color=fff&size=64`;
   return (
     <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-40 border-b border-slate-100 px-8 py-3 flex justify-between items-center">
       {/* Search */}
@@ -112,12 +172,14 @@ export function TopBar() {
         </button>
 
         <div className="ml-1 cursor-pointer hover:scale-105 transition-transform rounded-xl overflow-hidden border-2 border-summer-sky/30 shadow-sm">
-          <Avatar src={USER_AVATAR} size="md" className="rounded-xl" />
+          <Avatar src={topAvatarUrl} size="md" className="rounded-xl" />
         </div>
       </div>
     </header>
   );
 }
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function Layout() {
   return (

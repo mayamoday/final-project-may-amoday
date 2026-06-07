@@ -1,4 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import Badge from '../components/Badge';
@@ -20,13 +23,46 @@ const campers = [
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { user }  = useAuth();
+  const [displayName, setDisplayName] = useState('');
+
+  useEffect(() => {
+    if (!user) return;
+
+    async function resolveDisplayName() {
+      // Check staff table first
+      const { data: staffRow } = await supabase
+        .from('staff')
+        .select('full_name')
+        .eq('id', user!.id)
+        .maybeSingle();
+
+      if (staffRow?.full_name) {
+        setDisplayName(staffRow.full_name);
+        return;
+      }
+
+      // Fall back to camper table — show parent_name
+      const { data: camperRow } = await supabase
+        .from('camper')
+        .select('parent_name')
+        .eq('id', user!.id)
+        .maybeSingle();
+
+      if (camperRow?.parent_name) {
+        setDisplayName(camperRow.parent_name);
+      }
+    }
+
+    resolveDisplayName();
+  }, [user]);
 
   return (
     <div className="space-y-8 pb-12 max-w-7xl mx-auto">
 
       {/* ── Welcome Header ── */}
       <PageHeader
-        title="שלום, מאי 👋"
+        title={`שלום, ${displayName || '...'} 👋`}
         subtitle="הנה מה שקורה היום בקייטנה"
         actions={
           <Card className="px-4 py-2.5 flex items-center gap-2">
