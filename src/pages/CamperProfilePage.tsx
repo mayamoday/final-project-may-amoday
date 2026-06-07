@@ -127,7 +127,7 @@ export default function CamperProfilePage() {
     if (error) {
       setSaveError(error);
     } else {
-      setCamper((prev) => prev ? { ...prev, ...updates } : prev);
+      setCamper((prev) => prev ? { ...prev, ...updates } as CamperData : prev);
       setIsEditOpen(false);
     }
   };

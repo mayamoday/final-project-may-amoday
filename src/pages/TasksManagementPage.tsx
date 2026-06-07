@@ -331,8 +331,8 @@ export default function TasksManagementPage() {
 
     setTaskList(
       data.map(t => {
-        const staffRow = t.staff as { full_name: string } | null;
-        const name     = staffRow?.full_name ?? 'לא מוקצה';
+        const staffRows = t.staff as unknown as { full_name: string }[] | null;
+        const name      = staffRows?.[0]?.full_name ?? 'לא מוקצה';
         return {
           id:               String(t.id),
           title:            t.title ?? '',

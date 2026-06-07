@@ -221,7 +221,7 @@ export default function CreatePostModal({ isOpen, onClose, authorName, onSuccess
                             isTagged ? 'bg-summer-sky border-summer-sky' : 'border-slate-300'
                           }`}
                         >
-                          {isTagged && <Icon name="check" className="text-white" style={{ fontSize: '12px' }} />}
+                          {isTagged && <Icon name="check" className="text-white text-[12px]" />}
                         </div>
                         <span className="text-sm font-medium text-slate-700">{camper.full_name}</span>
                       </button>
