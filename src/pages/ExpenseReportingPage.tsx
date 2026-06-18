@@ -17,6 +17,9 @@ interface Expense {
   description: string | null;
   status: string;
   created_at: string;
+  reporter_id: string;
+  receipt_url: string | null;
+  staff: { full_name: string } | { full_name: string }[] | null;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -40,6 +43,30 @@ function formatDate(dateStr: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function statusLabel(status: string): string {
+  if (status === 'approved') return 'אושר';
+  if (status === 'rejected') return 'נדחה';
+  return 'ממתין';
+}
+
+function statusVariant(status: string): 'success' | 'danger' | 'warning' {
+  if (status === 'approved') return 'success';
+  if (status === 'rejected') return 'danger';
+  return 'warning';
+}
+
+function reporterName(item: Expense): string {
+  // staff may come back as a single joined object or (depending on the relationship
+  // PostgREST infers) as an array — guard against both shapes, plus null/undefined.
+  const staffData = item?.staff as any;
+  return staffData?.full_name || staffData?.[0]?.full_name || 'לא ידוע';
+}
+
+function safeAmount(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ExpenseReportingPage() {
@@ -47,10 +74,8 @@ export default function ExpenseReportingPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Budget
-  const [totalBudget, setTotalBudget]     = useState(0);
+  const totalBudget = 2000;
   const [totalSpent, setTotalSpent]       = useState(0);
-  const [editingBudget, setEditingBudget] = useState(false);
-  const [budgetInput, setBudgetInput]     = useState('');
 
   // Form
   const [amount, setAmount]           = useState('');
@@ -60,6 +85,8 @@ export default function ExpenseReportingPage() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [dragging, setDragging]       = useState(false);
+  const [editingExpenseId, setEditingExpenseId]     = useState<string | null>(null);
+  const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
 
   // UI
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
@@ -67,44 +94,33 @@ export default function ExpenseReportingPage() {
   const [error, setError]       = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const balance  = totalBudget - totalSpent;
-  const usedPct  = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
+  const balance      = safeAmount(totalBudget) - safeAmount(totalSpent);
+  const isOverBudget = balance < 0;
+  const usedPctRaw    = totalBudget > 0 ? (safeAmount(totalSpent) / totalBudget) * 100 : 0;
+  const usedPct       = safeAmount(Math.round(usedPctRaw));
+  const usedBarWidth  = Math.min(100, Math.max(0, usedPct));
 
   useEffect(() => {
-    fetchBudget();
     fetchExpenses();
   }, []);
 
-  async function fetchBudget() {
-    const { data } = await supabase
-      .from('camp_settings')
-      .select('total_budget')
-      .eq('id', 1)
-      .maybeSingle();
-    if (data) setTotalBudget(data.total_budget ?? 0);
-  }
-
   async function fetchExpenses() {
-    const { data } = await supabase
-      .from('expense')
-      .select('id, amount, date, category, description, status, created_at')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('expense')
+        .select('id, amount, date, category, description, status, created_at, reporter_id, receipt_url, staff!expense_reporter_id_fkey(full_name)')
+        .order('created_at', { ascending: false });
 
-    const all = data ?? [];
-    setRecentExpenses(all.slice(0, 5));
-    setTotalSpent(
-      all
-        .filter(e => e.status === 'approved')
-        .reduce((sum, e) => sum + (e.amount ?? 0), 0),
-    );
-  }
+      if (error) console.error('Supabase fetch error:', error);
 
-  async function saveBudget() {
-    const val = parseFloat(budgetInput);
-    if (isNaN(val) || val < 0) return;
-    await supabase.from('camp_settings').update({ total_budget: val }).eq('id', 1);
-    setTotalBudget(val);
-    setEditingBudget(false);
+      const all = ((data || []) as unknown as Expense[]).filter(Boolean);
+      setRecentExpenses(all.slice(0, 5));
+      setTotalSpent(all.reduce((sum, e) => sum + safeAmount(e?.amount), 0));
+    } catch (err) {
+      console.error('Supabase fetch error:', err);
+      // Keep whatever was already on screen rather than blanking the page out.
+      setRecentExpenses([]);
+    }
   }
 
   const handleFileChange = (file: File) => {
@@ -126,7 +142,37 @@ export default function ExpenseReportingPage() {
     setDescription('');
     setReceiptFile(null);
     setReceiptPreview(null);
+    setExistingReceiptUrl(null);
     setError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingExpenseId(null);
+    resetForm();
+  };
+
+  const handleEditClick = (item: Expense) => {
+    setEditingExpenseId(item.id);
+    setAmount(String(item.amount));
+    setDate(item.date);
+    setCategory(item.category ?? '');
+    setDescription(item.description ?? '');
+    setExistingReceiptUrl(item.receipt_url ?? null);
+    setReceiptFile(null);
+    setReceiptPreview(item.receipt_url ?? null);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק את הדיווח?')) return;
+    const { error: deleteError } = await supabase.from('expense').delete().eq('id', id);
+    if (deleteError) {
+      setError('שגיאה במחיקת הדיווח: ' + deleteError.message);
+      return;
+    }
+    if (editingExpenseId === id) cancelEdit();
+    await fetchExpenses();
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -134,10 +180,21 @@ export default function ExpenseReportingPage() {
     if (!user) return;
     if (!category) { setError('יש לבחור קטגוריה'); return; }
 
+    const newAmount = safeAmount(parseFloat(amount));
+    if (newAmount <= 0) { setError('יש להזין סכום הוצאה תקין'); return; }
+
+    const originalAmount = editingExpenseId
+      ? safeAmount(recentExpenses.find(x => x.id === editingExpenseId)?.amount)
+      : 0;
+    if (safeAmount(totalSpent) - originalAmount + newAmount > safeAmount(totalBudget)) {
+      setError('הסכום המבוקש חורג מהיתרה בקופה ולא ניתן לדיווח');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    let receipt_url: string | null = null;
+    let receipt_url: string | null = existingReceiptUrl;
 
     if (receiptFile) {
       const filePath = `${user.id}/${safeFileName(receiptFile)}`;
@@ -155,23 +212,32 @@ export default function ExpenseReportingPage() {
       receipt_url = urlData.publicUrl;
     }
 
-    const { error: insertError } = await supabase.from('expense').insert({
-      amount:      parseFloat(amount),
-      date,
-      category,
-      description,
-      receipt_url,
-      reporter_id: user.id,
-    });
+    const { error: saveError } = editingExpenseId
+      ? await supabase.from('expense').update({
+          amount: newAmount,
+          date,
+          category,
+          description,
+          receipt_url,
+        }).eq('id', editingExpenseId)
+      : await supabase.from('expense').insert({
+          amount:      newAmount,
+          date,
+          category,
+          description,
+          receipt_url,
+          reporter_id: user.id,
+        });
 
     setLoading(false);
 
-    if (insertError) {
-      setError('שגיאה בשמירת הדיווח: ' + insertError.message);
+    if (saveError) {
+      setError('שגיאה בשמירת הדיווח: ' + saveError.message);
       return;
     }
 
     setSubmitted(true);
+    setEditingExpenseId(null);
     resetForm();
     await fetchExpenses();
     setTimeout(() => setSubmitted(false), 3500);
@@ -213,6 +279,21 @@ export default function ExpenseReportingPage() {
         {/* ── Form ── */}
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+            {editingExpenseId && (
+              <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-between">
+                <span className="text-sm font-bold text-amber-700 flex items-center gap-2">
+                  <Icon name="edit" className="text-base" />
+                  עריכת דיווח קיים
+                </span>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="text-amber-600 hover:text-amber-800 text-xs font-bold underline"
+                >
+                  ביטול עריכה
+                </button>
+              </div>
+            )}
             <div className="p-6 space-y-5">
 
               {/* Amount + Date */}
@@ -294,7 +375,7 @@ export default function ExpenseReportingPage() {
                     <img src={receiptPreview} alt="קבלה" className="w-full h-44 object-cover" />
                     <button
                       type="button"
-                      onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                      onClick={() => { setReceiptFile(null); setReceiptPreview(null); setExistingReceiptUrl(null); }}
                       className="absolute top-2 left-2 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-colors"
                     >
                       <Icon name="close" className="text-sm" />
@@ -330,14 +411,23 @@ export default function ExpenseReportingPage() {
 
             {/* Form Footer */}
             <div className="bg-slate-50/70 px-6 py-4 flex items-center justify-between gap-4 border-t border-slate-100">
-              <Button variant="ghost" type="button" onClick={() => window.history.back()}>
-                ביטול וחזרה
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={editingExpenseId ? cancelEdit : () => window.history.back()}
+              >
+                {editingExpenseId ? 'ביטול עריכה' : 'ביטול וחזרה'}
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading ? (
                   <>
                     <Icon name="refresh" className="text-xl animate-spin" />
                     שולח...
+                  </>
+                ) : editingExpenseId ? (
+                  <>
+                    עדכון דיווח
+                    <Icon name="save" className="text-xl" />
                   </>
                 ) : (
                   <>
@@ -356,62 +446,29 @@ export default function ExpenseReportingPage() {
           {/* Budget Card */}
           <Card className="p-5 text-right">
             <p className="text-xs text-sunset-orange font-bold uppercase tracking-wider mb-1">יתרה בקופה</p>
-            <p className="text-4xl font-black text-deep-slate">₪{balance.toLocaleString()}</p>
+            <p className={`text-4xl font-black ${isOverBudget ? 'text-red-600' : 'text-deep-slate'}`}>
+              {isOverBudget ? '-' : ''}₪{Math.abs(balance).toLocaleString()}
+            </p>
+            {isOverBudget && (
+              <p className="text-xs font-bold text-red-500 mt-1">
+                חרגת מהתקציב ב-₪{Math.abs(balance).toLocaleString()}
+              </p>
+            )}
 
-            {/* Total budget row with edit button */}
-            <div className="flex items-center justify-between mt-1">
-              <button
-                type="button"
-                onClick={() => { setBudgetInput(String(totalBudget)); setEditingBudget(true); }}
-                className="text-slate-400 hover:text-summer-sky transition-colors p-0.5"
-                title="ערוך תקציב כולל"
-              >
-                <Icon name="edit" className="text-sm" />
-              </button>
+            {/* Total budget row */}
+            <div className="flex items-center justify-end mt-1">
               <p className="text-xs text-slate-400">מתוך תקציב ₪{totalBudget.toLocaleString()}</p>
             </div>
-
-            {/* Inline budget editor */}
-            {editingBudget && (
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingBudget(false)}
-                  className="text-slate-400 hover:text-red-400 transition-colors shrink-0"
-                >
-                  <Icon name="close" className="text-sm" />
-                </button>
-                <button
-                  type="button"
-                  onClick={saveBudget}
-                  className="text-emerald-500 hover:text-emerald-600 transition-colors shrink-0"
-                >
-                  <Icon name="check" className="text-sm" />
-                </button>
-                <input
-                  type="number"
-                  value={budgetInput}
-                  onChange={e => setBudgetInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') saveBudget();
-                    if (e.key === 'Escape') setEditingBudget(false);
-                  }}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 text-sm font-bold text-right outline-none focus:ring-2 focus:ring-summer-sky/30 min-w-0"
-                  autoFocus
-                />
-                <span className="text-sm text-slate-500 shrink-0">₪</span>
-              </div>
-            )}
 
             <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
-                  usedPct >= 90 ? 'bg-error' : usedPct >= 70 ? 'bg-vibrant-pink' : 'bg-summer-sky'
+                  isOverBudget || usedPct >= 90 ? 'bg-error' : usedPct >= 70 ? 'bg-vibrant-pink' : 'bg-summer-sky'
                 }`}
-                style={{ width: `${usedPct}%` }}
+                style={{ width: `${usedBarWidth}%` }}
               />
             </div>
-            <p className={`text-[10px] font-bold mt-2 ${usedPct >= 90 ? 'text-error' : 'text-vibrant-pink'}`}>
+            <p className={`text-[10px] font-bold mt-2 ${isOverBudget || usedPct >= 90 ? 'text-error' : 'text-vibrant-pink'}`}>
               {usedPct}% נוצל
             </p>
           </Card>
@@ -434,38 +491,80 @@ export default function ExpenseReportingPage() {
       {/* ── Recent Expenses ── */}
       <div className="mt-8">
         <h3 className="text-h2-section text-deep-slate font-bold mb-5 text-right">דיווחים אחרונים</h3>
-        <div className="space-y-3">
-          {recentExpenses.length === 0 ? (
-            <Card className="p-6 text-center text-slate-400 text-sm">אין דיווחים עדיין</Card>
-          ) : (
-            recentExpenses.map((item) => {
-              const cat = categories.find(c => c.value === item.category);
-              return (
-                <Card key={item.id} className="p-4 flex items-center justify-between hover:shadow-md transition-all">
-                  {/* Right: category icon + description + amount */}
-                  <div className="flex items-center gap-3 text-right">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
-                      <Icon name={cat?.icon ?? 'receipt_long'} className="text-xl" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-deep-slate text-sm">
-                        {item.description || cat?.label || '—'}
-                      </p>
-                      <p className="text-xs text-slate-400">₪{item.amount?.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  {/* Left: date + status badge */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <p className="text-xs text-slate-400">{formatDate(item.date)}</p>
-                    <Badge variant={item.status === 'approved' ? 'success' : 'warning'}>
-                      {item.status === 'approved' ? 'אושר' : 'ממתין'}
-                    </Badge>
-                  </div>
-                </Card>
-              );
-            })
-          )}
-        </div>
+        {recentExpenses.length === 0 ? (
+          <Card className="p-6 text-center text-slate-400 text-sm">אין דיווחים עדיין</Card>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden overflow-x-auto">
+            <table className="w-full text-right" dir="rtl">
+              <thead className="bg-slate-50/70 border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">תאריך</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">קטגוריה</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">תיאור</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">מדווח</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">סטטוס</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">סכום</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">פעולות</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentExpenses.map((item) => {
+                  const cat = categories.find(c => c.value === item.category);
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-4 py-3 text-sm text-slate-500 text-right whitespace-nowrap">{formatDate(item.date)}</td>
+                      <td className="px-4 py-3 text-sm text-deep-slate text-right whitespace-nowrap">
+                        <span className="inline-flex items-center gap-2">
+                          <Icon name={cat?.icon ?? 'receipt_long'} className="text-base text-slate-400" />
+                          {cat?.label ?? '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-deep-slate text-right">{item.description || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-500 text-right whitespace-nowrap">{reporterName(item)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Badge variant={statusVariant(item.status)}>{statusLabel(item.status)}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-bold text-deep-slate text-right whitespace-nowrap">
+                        ₪{safeAmount(item?.amount).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleEditClick(item)}
+                            aria-label="עריכת דיווח"
+                            title="עריכה"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-summer-sky hover:bg-sky-50 transition-colors"
+                          >
+                            <Icon name="edit" className="text-base" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item.id)}
+                            aria-label="מחיקת דיווח"
+                            title="מחיקה"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            <Icon name="delete" className="text-base" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot className="bg-slate-50/70 border-t border-slate-200">
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 text-sm font-bold text-deep-slate text-right">סך הכל</td>
+                  <td className="px-4 py-3 text-sm font-black text-deep-slate text-right whitespace-nowrap">
+                    ₪{recentExpenses.reduce((sum, e) => sum + safeAmount(e?.amount), 0).toLocaleString()}
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
