@@ -225,6 +225,13 @@
   }
 }
 
+/* Compact view — Tailwind's spacing/sizing scale is rem-based, so shrinking the
+   root font-size proportionally tightens paddings, margins and gaps everywhere
+   at once. Custom px-based heading tokens (--text-h1-display etc.) are unaffected. */
+html.compact-mode {
+  font-size: 14px;
+}
+
 /* RTL sidebar active border direction fix */
 [dir="rtl"] .nav-link.active {
   border-right-width: 4px;
@@ -249,6 +256,36 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: #bec8ce;
+}
+
+/* Rich text editor (react-quill-new) — force RTL for Hebrew content */
+.rtl-quill .ql-editor {
+  direction: rtl;
+  text-align: right;
+  min-height: 220px;
+  font-family: "Heebo", sans-serif;
+}
+
+.rtl-quill .ql-editor.ql-blank::before {
+  right: 15px;
+  left: auto;
+  font-style: normal;
+  color: rgb(148 163 184);
+}
+
+.rtl-quill .ql-editor ol,
+.rtl-quill .ql-editor ul {
+  padding-right: 1.5em;
+  padding-left: 0;
+}
+
+.rtl-quill .ql-toolbar.ql-snow {
+  direction: rtl;
+  text-align: right;
+}
+
+.rtl-quill .ql-snow .ql-picker-label {
+  direction: rtl;
 }
 
 /* No-scrollbar utility */

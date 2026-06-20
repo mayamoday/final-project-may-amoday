@@ -1,3 +1,6 @@
+import { useUIPreferences } from '../contexts/UIPreferencesContext';
+import Icon from './Icon';
+
 interface AvatarProps {
   /** URL to load an image from */
   src?: string;
@@ -25,7 +28,18 @@ export default function Avatar({
   size = 'lg',
   className = '',
 }: AvatarProps) {
+  const { showAvatars } = useUIPreferences();
   const sizeClass = sizeMap[size];
+
+  if (!showAvatars) {
+    return (
+      <div
+        className={`${sizeClass} rounded-full bg-slate-200 flex items-center justify-center text-slate-400 shrink-0 ${className}`}
+      >
+        <Icon name="person" fill className="text-[60%]" />
+      </div>
+    );
+  }
 
   if (src) {
     return (

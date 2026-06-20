@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import Badge from '../components/Badge';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import PageHeader from '../components/PageHeader';
+import { useAuth } from '../contexts/AuthContext';
+import { useUIPreferences } from '../contexts/UIPreferencesContext';
+import { useProfile } from '../contexts/ProfileContext';
+import { supabase } from '../lib/supabase';
 
 // ─── Toggle Component ─────────────────────────────────────────────────────────
 
@@ -59,38 +63,117 @@ function SettingRow({
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const { language, setLanguage, compactView, setCompactView, showAvatars, setShowAvatars } = useUIPreferences();
+  const { setProfile: setGlobalProfile } = useProfile();
   const [saved, setSaved]               = useState(false);
+  const [saveError, setSaveError]       = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Profile state
-  const [name, setName]                 = useState('מאי עמודי');
-  const [role, setRole]                 = useState('ראש משלחת');
-  const [email, setEmail]               = useState('may.amudi@camp.org.il');
-  const [phone, setPhone]               = useState('054-1234567');
+  const [name, setName]                 = useState('');
+  const [role, setRole]                 = useState('');
+  const [email, setEmail]               = useState('');
+  const [phone, setPhone]               = useState('');
+  const [avatarUrl, setAvatarUrl]       = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
-  // Notifications
-  const [pushNotif, setPushNotif]       = useState(true);
-  const [emailNotif, setEmailNotif]     = useState(true);
-  const [waNotif, setWaNotif]           = useState(false);
-  const [incidentAlert, setIncidentAlert] = useState(true);
-  const [parentMsg, setParentMsg]       = useState(true);
-  const [dailySummary, setDailySummary] = useState(false);
+  useEffect(() => {
+    if (!user) return;
 
-  // Preferences
-  const [language, setLanguage]         = useState('he');
-  const [compactView, setCompactView]   = useState(false);
-  const [showAvatars, setShowAvatars]   = useState(true);
+    async function fetchProfile() {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('full_name, role, email, phone, avatar_url')
+        .eq('id', user!.id)
+        .maybeSingle();
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+      if (error) {
+        console.error('[SettingsPage] fetch profile failed:', error);
+        return;
+      }
+      if (data) {
+        setName(data.full_name ?? '');
+        setRole(data.role ?? '');
+        setEmail(data.email ?? '');
+        setPhone(data.phone ?? '');
+        setAvatarUrl(data.avatar_url ?? null);
+      }
+    }
+
+    fetchProfile();
+  // AuthContext hands back a new `user` object reference on every token-refresh
+  // event even when the id is unchanged — depend on the stable id, not the object,
+  // or a background refresh while editing would silently overwrite in-progress changes.
+  }, [user?.id]);
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
+
+    setSaveError(null);
+
+    const { error } = await supabase
+      .from('staff')
+      .update({ full_name: name, role, email, phone })
+      .eq('id', user.id);
+
+    if (error) {
+      console.error('[SettingsPage] save profile failed:', error);
+      setSaveError('שגיאה בשמירת ההגדרות: ' + error.message);
+      return;
+    }
+
+    setGlobalProfile({ fullName: name });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !user) return;
+
+    setAvatarUploading(true);
+    setSaveError(null);
+
+    const ext = /\.([a-zA-Z0-9]+)$/.exec(file.name)?.[1]?.toLowerCase() ?? 'jpg';
+    const filePath = `${user.id}-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+
+    if (uploadError) {
+      console.error('[SettingsPage] avatar upload failed:', uploadError);
+      setSaveError('שגיאה בהעלאת התמונה: ' + uploadError.message);
+      setAvatarUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    const newUrl = urlData.publicUrl;
+
+    const { error: updateError } = await supabase
+      .from('staff')
+      .update({ avatar_url: newUrl })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('[SettingsPage] avatar_url update failed:', updateError);
+      setSaveError('שגיאה בשמירת התמונה: ' + updateError.message);
+      setAvatarUploading(false);
+      return;
+    }
+
+    setAvatarUrl(newUrl);
+    setGlobalProfile({ avatarUrl: newUrl });
+    setAvatarUploading(false);
   };
 
   return (
     <div className="max-w-3xl mx-auto pb-12 space-y-6" dir="rtl">
       <PageHeader
         title="הגדרות חשבון"
-        subtitle="נהל את הפרופיל, ההתראות וההעדפות שלך"
+        subtitle="נהל את הפרופיל וההעדפות שלך"
         icon="settings"
         iconColor="text-slate-500"
       />
@@ -102,6 +185,13 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {saveError && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3 text-right">
+          <Icon name="error" fill className="text-xl text-red-500 shrink-0" />
+          <p className="text-sm font-bold text-red-600">{saveError}</p>
+        </div>
+      )}
+
       <form onSubmit={handleSave} className="space-y-5">
 
         {/* ── Profile Section ── */}
@@ -110,21 +200,35 @@ export default function SettingsPage() {
           <div className="flex items-center gap-5 pb-4 border-b border-slate-50 text-right">
             <div className="relative">
               <Avatar
-                src="https://ui-avatars.com/api/?name=Mai+Amudi&background=7dd3fc&color=fff&size=128"
+                src={avatarUrl ?? undefined}
+                initials={name ? name.charAt(0) : '?'}
                 size="xl"
                 className="border-4 border-white shadow-soft"
               />
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
               <button
                 type="button"
-                className="absolute bottom-1 left-1 w-8 h-8 bg-vibrant-pink rounded-full flex items-center justify-center text-white shadow-md hover:brightness-110 transition-all"
+                onClick={() => fileRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute bottom-1 left-1 w-8 h-8 bg-vibrant-pink rounded-full flex items-center justify-center text-white shadow-md hover:brightness-110 transition-all disabled:opacity-60"
               >
-                <Icon name="photo_camera" fill className="text-sm" />
+                {avatarUploading ? (
+                  <Icon name="refresh" className="text-sm animate-spin" />
+                ) : (
+                  <Icon name="photo_camera" fill className="text-sm" />
+                )}
               </button>
             </div>
             <div>
               <p className="text-xl font-black text-deep-slate">{name}</p>
               <Badge variant="info" className="mt-1">{role}</Badge>
-              <p className="text-xs text-slate-400 mt-2">קיץ 2024 • משלחת ישראל</p>
+              <p className="text-xs text-slate-400 mt-2">משלחת למחנה קיץ EKC</p>
             </div>
           </div>
 
@@ -149,38 +253,12 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        {/* ── Notifications Section ── */}
-        <Section title="ניהול התראות" icon="notifications">
-          <SettingRow label="התראות Push" description="קבל התראות ישירות לטלפון">
-            <Toggle checked={pushNotif} onChange={() => setPushNotif(!pushNotif)} />
-          </SettingRow>
-          <SettingRow label="עדכונים לאימייל" description="קבל דוחות ועדכונים לתיבת הדואר">
-            <Toggle checked={emailNotif} onChange={() => setEmailNotif(!emailNotif)} />
-          </SettingRow>
-          <SettingRow label="התראות WhatsApp" description="שלח עדכונים חשובים לקבוצת הוואטסאפ">
-            <Toggle checked={waNotif} onChange={() => setWaNotif(!waNotif)} />
-          </SettingRow>
-
-          <div className="border-t border-slate-50 pt-4 space-y-4">
-            <p className="text-xs font-bold text-slate-400 text-right uppercase tracking-wider">סוגי התראות</p>
-            <SettingRow label="התראות אירועי בטיחות" description="קבל התראה מיידית על כל אירוע חריג">
-              <Toggle checked={incidentAlert} onChange={() => setIncidentAlert(!incidentAlert)} />
-            </SettingRow>
-            <SettingRow label="הודעות מהורים" description="קבל עדכון כשהורה שולח הודעה חדשה">
-              <Toggle checked={parentMsg} onChange={() => setParentMsg(!parentMsg)} />
-            </SettingRow>
-            <SettingRow label="סיכום יומי" description="קבל סיכום כל לילה בשעה 21:00">
-              <Toggle checked={dailySummary} onChange={() => setDailySummary(!dailySummary)} />
-            </SettingRow>
-          </div>
-        </Section>
-
         {/* ── Display Preferences ── */}
         <Section title="העדפות תצוגה" icon="tune">
           <SettingRow label="שפת ממשק" description="שפת הממשק הנוכחית">
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => setLanguage(e.target.value as 'he' | 'en' | 'ar')}
               className="bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm font-bold focus:ring-2 focus:ring-summer-sky/30 outline-none text-right"
             >
               <option value="he">עברית</option>

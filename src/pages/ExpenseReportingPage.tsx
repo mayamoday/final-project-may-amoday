@@ -6,6 +6,7 @@ import Badge from '../components/Badge';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import PageHeader from '../components/PageHeader';
+import { TOTAL_BUDGET } from '../lib/budget';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,7 +75,7 @@ export default function ExpenseReportingPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Budget
-  const totalBudget = 2000;
+  const totalBudget = TOTAL_BUDGET;
   const [totalSpent, setTotalSpent]       = useState(0);
 
   // Form

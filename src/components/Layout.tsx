@@ -1,9 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import Icon from './Icon';
 import Avatar from './Avatar';
 import { useAuth } from '../contexts/AuthContext';
+import { useProfile } from '../contexts/ProfileContext';
 import { supabase } from '../lib/supabase';
+
+function getInitials(name: string): string {
+  return name.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('');
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+interface CamperResult {
+  id: string;
+  full_name: string;
+}
+
+interface TaskResult {
+  id: string;
+  title: string;
+}
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
@@ -32,25 +56,11 @@ function buildNavItems(userId: string | undefined): NavItem[] {
 
 export function SideNav() {
   const { signOut, user, userRole } = useAuth();
+  const { fullName, avatarUrl } = useProfile();
   const navigate = useNavigate();
-  const [displayName, setDisplayName] = useState('...');
-
-  // Fetch display name from the correct table once role is known
-  useEffect(() => {
-    if (!user || !userRole) return;
-    const table = userRole === 'staff' ? 'staff' : 'camper';
-    supabase
-      .from(table)
-      .select('full_name')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.full_name) setDisplayName(data.full_name);
-      });
-  }, [user, userRole]);
+  const displayName = fullName || '...';
 
   const roleLabel = userRole === 'staff' ? 'סגל מחנה' : userRole === 'camper' ? 'הורה / חניך' : '';
-  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=7dd3fc&color=fff&size=64`;
 
   const navItems = buildNavItems(user?.id).filter(
     (item) => !userRole || item.roles.includes(userRole),
@@ -70,13 +80,13 @@ export function SideNav() {
         </div>
         <div className="text-right">
           <h2 className="text-xl font-black text-sky-500 tracking-tight leading-none">My Camp</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">קיץ 2024</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">16.7-11.8.2026</p>
         </div>
       </div>
 
       {/* User */}
       <div className="flex items-center gap-3 px-6 py-4 bg-slate-50/50 border-b border-slate-100">
-        <Avatar src={avatarUrl} size="md" className="border-2 border-summer-sky" />
+        <Avatar src={avatarUrl ?? undefined} initials={getInitials(displayName)} size="md" className="border-2 border-summer-sky" />
         <div className="text-right flex-1 min-w-0">
           <p className="text-sm font-bold text-slate-800 truncate">{displayName}</p>
           <p className="text-[10px] text-slate-500">{roleLabel}</p>
@@ -111,22 +121,8 @@ export function SideNav() {
         ))}
       </nav>
 
-      {/* Quick Action — staff only */}
-      {userRole === 'staff' && (
-        <div className="px-4 pb-2">
-          <button className="w-full bg-summer-sky text-white font-bold py-3 rounded-2xl shadow-lg shadow-sky-200/50 hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm">
-            <Icon name="add" className="text-lg" />
-            <span>פעולה מהירה</span>
-          </button>
-        </div>
-      )}
-
       {/* Bottom links */}
       <div className="border-t border-slate-100 p-3 space-y-1">
-        <a href="#" className="flex items-center gap-3 px-4 py-2.5 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors text-sm">
-          <Icon name="help" className="text-lg" />
-          <span>עזרה ותמיכה</span>
-        </a>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:bg-red-50 rounded-xl transition-colors text-sm"
@@ -143,37 +139,137 @@ export function SideNav() {
 
 export function TopBar() {
   const { user } = useAuth();
-  const topAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.email ?? 'U')}&background=7dd3fc&color=fff&size=64`;
+  const { fullName, avatarUrl } = useProfile();
+  const navigate = useNavigate();
+  const topInitials = fullName ? getInitials(fullName) : (user?.email?.charAt(0).toUpperCase() ?? 'U');
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searching, setSearching]     = useState(false);
+  const [camperResults, setCamperResults] = useState<CamperResult[]>([]);
+  const [taskResults, setTaskResults]     = useState<TaskResult[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const debouncedQuery = useDebouncedValue(searchQuery, 300);
+
+  // Close the dropdown when clicking outside the search box
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setDropdownOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const trimmed = debouncedQuery.trim();
+    if (!trimmed) {
+      setCamperResults([]);
+      setTaskResults([]);
+      setSearching(false);
+      return;
+    }
+
+    let active = true;
+    setSearching(true);
+
+    Promise.all([
+      supabase.from('camper').select('id, full_name').ilike('full_name', `%${trimmed}%`).limit(5),
+      supabase.from('tasks').select('id, title').ilike('title', `%${trimmed}%`).limit(5),
+    ]).then(([campersRes, tasksRes]) => {
+      if (!active) return;
+      if (campersRes.error) console.error('[TopBar search] campers failed:', campersRes.error);
+      if (tasksRes.error) console.error('[TopBar search] tasks failed:', tasksRes.error);
+      setCamperResults(campersRes.data ?? []);
+      setTaskResults(tasksRes.data ?? []);
+      setSearching(false);
+    });
+
+    return () => { active = false; };
+  }, [debouncedQuery]);
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setDropdownOpen(false);
+  };
+
+  const goToCamper = (id: string) => {
+    navigate(`/camper/${id}`);
+    clearSearch();
+  };
+
+  const goToTasks = () => {
+    navigate('/tasks');
+    clearSearch();
+  };
+
+  const showDropdown = dropdownOpen && searchQuery.trim().length > 0;
+  const hasResults = camperResults.length > 0 || taskResults.length > 0;
+
   return (
     <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-40 border-b border-slate-100 px-8 py-3 flex justify-between items-center">
       {/* Search */}
-      <div className="flex-1 max-w-sm">
+      <div className="flex-1 max-w-sm relative" ref={searchRef} dir="rtl">
         <div className="relative group">
           <Icon name="search" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl group-focus-within:text-summer-sky transition-colors" />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setDropdownOpen(true); }}
+            onFocus={() => setDropdownOpen(true)}
             placeholder="חיפוש חניכים, משימות..."
             className="w-full bg-slate-50 border-none rounded-full py-2.5 pr-10 pl-4 text-sm focus:ring-2 focus:ring-summer-sky/30 outline-none transition-all text-right placeholder:text-slate-400"
           />
         </div>
+
+        {showDropdown && (
+          <div className="absolute top-full inset-x-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 text-right max-h-96 overflow-y-auto">
+            {searching ? (
+              <p className="px-4 py-4 text-xs text-slate-400 text-center">מחפש...</p>
+            ) : !hasResults ? (
+              <p className="px-4 py-4 text-xs text-slate-400 text-center">לא נמצאו תוצאות</p>
+            ) : (
+              <>
+                {camperResults.length > 0 && (
+                  <div>
+                    <p className="px-4 pt-3 pb-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">חניכים</p>
+                    {camperResults.map((camper) => (
+                      <button
+                        key={camper.id}
+                        type="button"
+                        onClick={() => goToCamper(camper.id)}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
+                      >
+                        <Icon name="person" className="text-base text-summer-sky" />
+                        {camper.full_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {taskResults.length > 0 && (
+                  <div className={camperResults.length > 0 ? 'border-t border-slate-50' : ''}>
+                    <p className="px-4 pt-3 pb-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">משימות</p>
+                    {taskResults.map((task) => (
+                      <button
+                        key={task.id}
+                        type="button"
+                        onClick={goToTasks}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
+                      >
+                        <Icon name="checklist" className="text-base text-vibrant-pink" />
+                        {task.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Right Actions */}
-      <div className="flex items-center gap-2">
-        <button className="p-2.5 rounded-full hover:bg-sky-50 text-slate-400 hover:text-summer-sky transition-all active:scale-95">
-          <Icon name="help" className="text-xl" />
-        </button>
-        <button className="p-2.5 rounded-full hover:bg-sky-50 text-slate-400 hover:text-summer-sky transition-all active:scale-95">
-          <Icon name="chat" className="text-xl" />
-        </button>
-        <button className="p-2.5 rounded-full hover:bg-pink-50 text-slate-400 hover:text-vibrant-pink transition-all active:scale-95 relative">
-          <Icon name="notifications" className="text-xl" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-vibrant-pink rounded-full border-2 border-white animate-pulse" />
-        </button>
-
-        <div className="ml-1 cursor-pointer hover:scale-105 transition-transform rounded-xl overflow-hidden border-2 border-summer-sky/30 shadow-sm">
-          <Avatar src={topAvatarUrl} size="md" className="rounded-xl" />
-        </div>
+      {/* User Avatar */}
+      <div className="cursor-pointer hover:scale-105 transition-transform rounded-xl overflow-hidden border-2 border-summer-sky/30 shadow-sm">
+        <Avatar src={avatarUrl ?? undefined} initials={topInitials} size="md" className="rounded-xl" />
       </div>
     </header>
   );

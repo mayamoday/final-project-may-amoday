@@ -1,36 +1,63 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { TOTAL_BUDGET } from '../lib/budget';
 import Icon from '../components/Icon';
-import Avatar from '../components/Avatar';
 import Badge from '../components/Badge';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
+import ParentInquiryComposerModal, { type ParentInquiry } from '../components/ParentInquiryComposerModal';
+
+// ─── Config ───────────────────────────────────────────────────────────────────
 
 const quickActions = [
   { icon: 'account_balance_wallet', label: 'דו"ח תקציב', sub: 'צפייה ועדכון הוצאות', color: 'bg-pink-100', textColor: 'text-vibrant-pink', borderHover: 'hover:border-vibrant-pink/30', path: '/expenses' },
   { icon: 'emergency', label: 'דיווח אירוע', sub: 'דיווח בטיחותי מיידי', color: 'bg-sky-100', textColor: 'text-summer-sky', borderHover: 'hover:border-summer-sky/30', path: '/incidents' },
-  { icon: 'database', label: 'מאגר פעילויות', sub: 'חיפוש והפעלת תכנים', color: 'bg-orange-100', textColor: 'text-sunset-orange', borderHover: 'hover:border-sunset-orange/30', path: '#' },
+  { icon: 'database', label: 'מאגר פעילויות', sub: 'חיפוש והפעלת תכנים', color: 'bg-orange-100', textColor: 'text-sunset-orange', borderHover: 'hover:border-sunset-orange/30', path: '/knowledge' },
   { icon: 'upload', label: 'העלאת פוסט', sub: 'עדכון הורים ברשתות', color: 'bg-yellow-100', textColor: 'text-sunshine-yellow', borderHover: 'hover:border-sunshine-yellow/30', path: '/feed' },
 ];
 
-const campers = [
-  { id: 1, name: 'מאיה לוי', group: "שבט ג' - אוהל 4", allergy: 'אלרגיה לבוטנים', docStatus: 'מאושר', docOk: true },
-  { id: 2, name: 'נועם כהן', group: "שבט ג' - אוהל 2", allergy: null, docStatus: 'חסרה הצהרת בריאות', docOk: false },
-  { id: 3, name: 'עידן מזרחי', group: "שבט ד' - אוהל 1", allergy: 'אלרגיה ללקטוז', docStatus: 'מאושר', docOk: true },
-];
+const statusBadge: Record<string, 'warning' | 'success'> = {
+  'ממתין למענה': 'warning',
+  'טופל':        'success',
+};
+
+function safeAmount(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('he-IL');
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user }  = useAuth();
   const [displayName, setDisplayName] = useState('');
 
+  // Stats
+  const [totalSpent, setTotalSpent]             = useState(0);
+  const [openTasksCount, setOpenTasksCount]     = useState(0);
+  const [highPriorityCount, setHighPriorityCount] = useState(0);
+  const [incidentCount, setIncidentCount]       = useState(0);
+  const [severeIncidentCount, setSevereIncidentCount] = useState(0);
+
+  // Parent inquiries
+  const [inquiries, setInquiries]   = useState<ParentInquiry[]>([]);
+  const [loadingInquiries, setLoadingInquiries] = useState(true);
+  const [activeInquiry, setActiveInquiry] = useState<ParentInquiry | null>(null);
+  const [composerOpen, setComposerOpen]   = useState(false);
+
   useEffect(() => {
     if (!user) return;
 
     async function resolveDisplayName() {
-      // Check staff table first
       const { data: staffRow } = await supabase
         .from('staff')
         .select('full_name')
@@ -42,7 +69,6 @@ export default function DashboardPage() {
         return;
       }
 
-      // Fall back to camper table — show parent_name
       const { data: camperRow } = await supabase
         .from('camper')
         .select('parent_name')
@@ -57,8 +83,56 @@ export default function DashboardPage() {
     resolveDisplayName();
   }, [user]);
 
+  useEffect(() => {
+    fetchStats();
+    fetchInquiries();
+  }, []);
+
+  async function fetchStats() {
+    const [expenseRes, tasksRes, eventsRes] = await Promise.all([
+      supabase.from('expense').select('amount'),
+      supabase.from('tasks').select('status, priority'),
+      supabase.from('events').select('severity'),
+    ]);
+
+    if (expenseRes.error) console.error(expenseRes.error);
+    setTotalSpent((expenseRes.data ?? []).reduce((sum, e) => sum + safeAmount(e.amount), 0));
+
+    if (tasksRes.error) console.error(tasksRes.error);
+    const openTasks = (tasksRes.data ?? []).filter(t => t.status !== 'הושלם');
+    setOpenTasksCount(openTasks.length);
+    setHighPriorityCount(openTasks.filter(t => t.priority === 'גבוהה').length);
+
+    if (eventsRes.error) console.error(eventsRes.error);
+    const events = eventsRes.data ?? [];
+    setIncidentCount(events.length);
+    setSevereIncidentCount(events.filter(e => e.severity === 'גבוה' || e.severity === 'קריטי').length);
+  }
+
+  async function fetchInquiries() {
+    setLoadingInquiries(true);
+    const { data, error } = await supabase
+      .from('parent_inquiries')
+      .select('id, parent_name, subject, status, created_at, camper_id')
+      .order('created_at', { ascending: false })
+      .limit(8);
+
+    if (error) console.error(error);
+    setInquiries((data ?? []) as ParentInquiry[]);
+    setLoadingInquiries(false);
+  }
+
+  const pendingInquiries = inquiries.filter(i => i.status === 'ממתין למענה').length;
+  const usedPct = TOTAL_BUDGET > 0 ? Math.min(100, Math.round((totalSpent / TOTAL_BUDGET) * 100)) : 0;
+  const isOverBudget = totalSpent > TOTAL_BUDGET;
+
+  const openInquiry = (inquiry: ParentInquiry) => {
+    setActiveInquiry(inquiry);
+    setComposerOpen(true);
+  };
+
   return (
-    <div className="space-y-8 pb-12 max-w-7xl mx-auto">
+    <div className="space-y-8 pb-12 max-w-7xl mx-auto" dir="rtl">
 
       {/* ── Welcome Header ── */}
       <PageHeader
@@ -67,7 +141,7 @@ export default function DashboardPage() {
         actions={
           <Card className="px-4 py-2.5 flex items-center gap-2">
             <Icon name="calendar_today" className="text-vibrant-pink text-xl" fill />
-            <span className="font-bold text-slate-700 text-sm">14 ביולי, 2024</span>
+            <span className="font-bold text-slate-700 text-sm">{new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </Card>
         }
       />
@@ -100,138 +174,95 @@ export default function DashboardPage() {
               <h3 className="font-bold text-slate-800 text-sm">ניצול תקציב</h3>
             </div>
             <div className="flex items-baseline gap-2 mb-2 justify-end">
-              <span className="text-xs text-slate-400">מתוך $15,000</span>
-              <span className="text-4xl font-black text-deep-slate">85%</span>
+              <span className="text-xs text-slate-400">מתוך ₪{TOTAL_BUDGET.toLocaleString()}</span>
+              <span className="text-4xl font-black text-deep-slate">{usedPct}%</span>
             </div>
             <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-              <div className="bg-vibrant-pink h-full rounded-full transition-all duration-700" style={{ width: '85%' }} />
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${isOverBudget ? 'bg-error' : 'bg-vibrant-pink'}`}
+                style={{ width: `${usedPct}%` }}
+              />
             </div>
           </div>
-          <p className="text-xs text-vibrant-pink font-bold mt-4 text-right">⚠ חריגה קלה בסעיף מזון</p>
+          {isOverBudget && (
+            <p className="text-xs text-error font-bold mt-4 text-right">⚠ חריגה מהתקציב</p>
+          )}
         </Card>
 
         {/* 3 stat cards */}
         <div className="md:col-span-8 grid grid-cols-3 gap-4">
           <div className="stat-card">
             <p className="text-slate-500 text-xs mb-2">משימות פתוחות</p>
-            <p className="text-4xl font-black text-deep-slate">12</p>
-            <Badge variant="danger" className="mt-2">4 בעדיפות גבוהה</Badge>
+            <p className="text-4xl font-black text-deep-slate">{openTasksCount}</p>
+            {highPriorityCount > 0
+              ? <Badge variant="danger" className="mt-2">{highPriorityCount} בעדיפות גבוהה</Badge>
+              : <Badge variant="success" className="mt-2">הכל תקין ✓</Badge>}
           </div>
           <div className="stat-card">
             <p className="text-slate-500 text-xs mb-2">פניות הורים</p>
-            <p className="text-4xl font-black text-deep-slate">4</p>
-            <Badge variant="info" className="mt-2">ממתין למענה</Badge>
+            <p className="text-4xl font-black text-deep-slate">{inquiries.length}</p>
+            {pendingInquiries > 0
+              ? <Badge variant="info" className="mt-2">{pendingInquiries} ממתינות למענה</Badge>
+              : <Badge variant="success" className="mt-2">הכל טופל ✓</Badge>}
           </div>
           <div className="stat-card">
-            <p className="text-slate-500 text-xs mb-2">אירועי בטיחות</p>
-            <p className="text-4xl font-black text-deep-slate">0</p>
-            <Badge variant="success" className="mt-2">הכל תקין ✓</Badge>
+            <p className="text-slate-500 text-xs mb-2">דיווחי אירועים</p>
+            <p className="text-4xl font-black text-deep-slate">{incidentCount}</p>
+            {severeIncidentCount > 0
+              ? <Badge variant="danger" className="mt-2">{severeIncidentCount} בחומרה גבוהה</Badge>
+              : <Badge variant="success" className="mt-2">הכל תקין ✓</Badge>}
           </div>
         </div>
       </div>
 
-      {/* ── Camper Status Table ── */}
+      {/* ── Parent Inquiries Section ── */}
       <Card className="overflow-hidden">
-        <div className="px-8 py-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-          <button
-            onClick={() => navigate('/camper/1')}
-            className="text-summer-sky text-sm font-bold flex items-center gap-1 hover:underline"
-          >
-            צפייה בכל הרשימה
-            <Icon name="chevron_left" className="text-sm" />
-          </button>
-          <h2 className="text-h2-section text-deep-slate font-bold">סטטוס חיוני — חניכים</h2>
+        <div className="px-8 py-5 border-b border-slate-50 flex justify-between flex-row-reverse items-center bg-slate-50/30" dir="rtl">
+          <span className="text-xs text-slate-400">{inquiries.length} פניות אחרונות</span>
+          <h2 className="text-h2-section text-deep-slate font-bold">מעקב פניות הורים</h2>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-right">
-            <thead>
-              <tr className="text-slate-400 text-xs border-b border-slate-50">
-                <th className="px-8 py-4 font-bold">שם החניך</th>
-                <th className="px-8 py-4 font-bold">מידע קריטי</th>
-                <th className="px-8 py-4 font-bold">סטטוס מסמכים</th>
-                <th className="px-8 py-4 font-bold">פעולות</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {campers.map((camper) => (
-                <tr key={camper.id} className="hover:bg-slate-50/60 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <Avatar initials={camper.name[0]} size="lg" />
-                      <div>
-                        <p className="font-bold text-slate-800 text-sm">{camper.name}</p>
-                        <p className="text-xs text-slate-400">{camper.group}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    {camper.allergy ? (
-                      <Badge variant="danger">{camper.allergy}</Badge>
-                    ) : (
-                      <span className="text-xs text-slate-400">אין מידע רפואי חריג</span>
-                    )}
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-2 justify-end">
-                      <span className="text-sm text-slate-600">{camper.docStatus}</span>
-                      <div className={`w-2.5 h-2.5 rounded-full ${camper.docOk ? 'bg-green-500' : 'bg-orange-400'}`} />
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={() => navigate(`/camper/${camper.id}`)}
-                        className="p-2 text-slate-300 hover:text-summer-sky hover:bg-sky-50 rounded-lg transition-all"
-                      >
-                        <Icon name="visibility" className="text-lg" />
-                      </button>
-                      <button className="p-2 text-slate-300 hover:text-vibrant-pink hover:bg-pink-50 rounded-lg transition-all">
-                        <Icon name="call" className="text-lg" />
-                      </button>
-                    </div>
-                  </td>
+        {loadingInquiries ? (
+          <p className="text-right px-8 text-slate-400 text-sm py-10">טוען פניות...</p>
+        ) : inquiries.length === 0 ? (
+          <p className="text-right px-8 text-slate-400 text-sm py-10">אין פניות הורים כרגע</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-right" dir="rtl">
+              <thead>
+                <tr className="text-slate-400 text-xs border-b border-slate-50">
+                  <th className="px-8 py-4 font-bold text-right">שם ההורה</th>
+                  <th className="px-8 py-4 font-bold text-right">נושא</th>
+                  <th className="px-8 py-4 font-bold text-right">תאריך</th>
+                  <th className="px-8 py-4 font-bold text-right">סטטוס</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {inquiries.map((inquiry) => (
+                  <tr
+                    key={inquiry.id}
+                    onClick={() => openInquiry(inquiry)}
+                    className="hover:bg-slate-50/60 transition-colors cursor-pointer"
+                  >
+                    <td className="px-8 py-5 font-bold text-slate-800 text-sm">{inquiry.parent_name}</td>
+                    <td className="px-8 py-5 text-sm text-slate-600">{inquiry.subject}</td>
+                    <td className="px-8 py-5 text-sm text-slate-400 whitespace-nowrap">{formatDate(inquiry.created_at)}</td>
+                    <td className="px-8 py-5">
+                      <Badge variant={statusBadge[inquiry.status] ?? 'neutral'}>{inquiry.status}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
-      {/* ── Bottom Row: Incident + Schedule ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-vibrant-pink to-pink-600 rounded-2xl p-6 text-white shadow-xl shadow-pink-200/40">
-          <h3 className="text-h2-section font-bold mb-2 text-white">דיווח אירוע חריג</h3>
-          <p className="text-white/80 text-sm mb-6">דווח על אירוע בטיחות או רפואי בזמן אמת למפקדה</p>
-          <button
-            onClick={() => navigate('/incidents')}
-            className="w-full bg-white text-vibrant-pink font-black py-3.5 rounded-xl shadow-lg hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            <Icon name="emergency_home" fill className="text-xl" />
-            <span>פתח דיווח חירום</span>
-          </button>
-        </div>
-
-        <Card className="lg:col-span-2 p-6">
-          <h3 className="font-bold text-deep-slate mb-5 text-right">לו"ז יומי — 14 יולי</h3>
-          <div className="space-y-4">
-            {[
-              { time: '16:00', title: 'סדנת יצירה', sub: 'חטיבה תחתונה', active: true },
-              { time: '17:30', title: 'זמן חופשי', sub: 'בריכה/מגרשים', active: false },
-              { time: '19:30', title: 'ארוחת ערב', sub: 'חדר אוכל מרכזי', active: false },
-              { time: '21:00', title: 'פעילות ערב', sub: 'כיכר המרכזית', active: false },
-            ].map((item, i) => (
-              <div key={i} className="flex gap-4 items-start">
-                <span className={`font-bold text-xs pt-1 w-12 text-left ${item.active ? 'text-summer-sky' : 'text-slate-400'}`}>{item.time}</span>
-                <div className={`pr-4 border-r-2 flex-1 text-right ${item.active ? 'border-summer-sky' : 'border-slate-100'}`}>
-                  <p className={`font-bold text-sm ${item.active ? 'text-deep-slate' : 'text-slate-500'}`}>{item.title}</p>
-                  <p className="text-xs text-slate-400">{item.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+      <ParentInquiryComposerModal
+        isOpen={composerOpen}
+        inquiry={activeInquiry}
+        onClose={() => setComposerOpen(false)}
+      />
     </div>
   );
 }

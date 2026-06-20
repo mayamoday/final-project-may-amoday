@@ -10,6 +10,7 @@ import CamperProfilePage from './pages/CamperProfilePage';
 import CampersListPage from './pages/CampersListPage';
 import ExpenseReportingPage from './pages/ExpenseReportingPage';
 import KnowledgeBasePage from './pages/KnowledgeBasePage';
+import CreateDocumentPage from './pages/CreateDocumentPage';
 import IncidentReportPage from './pages/IncidentReportPage';
 import TasksManagementPage from './pages/TasksManagementPage';
 import SettingsPage from './pages/SettingsPage';
@@ -31,6 +32,7 @@ function App() {
           <Route path="/campers"    element={<CampersListPage />} />
           <Route path="/camper/:id" element={<CamperProfilePage />} />
           <Route path="/knowledge"  element={<KnowledgeBasePage />} />
+          <Route path="/create-document" element={<CreateDocumentPage />} />
           <Route path="/incidents"  element={<IncidentReportPage />} />
           <Route path="/tasks"      element={<TasksManagementPage />} />
           <Route path="/settings"   element={<SettingsPage />} />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import Badge from '../components/Badge';
@@ -8,6 +9,18 @@ import CreatePostModal from '../components/CreatePostModal';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+interface PostLike {
+  staffId: string;
+  fullName: string;
+}
+
+interface PostComment {
+  id: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
 interface FeedPost {
   id: string;
   authorName: string;
@@ -16,6 +29,8 @@ interface FeedPost {
   content: string;
   imageUrl: string | null;
   createdAt: string;
+  likes: PostLike[];
+  comments: PostComment[];
 }
 
 const AVATAR_GRADIENTS = [
@@ -26,9 +41,9 @@ const AVATAR_GRADIENTS = [
   'from-purple-400 to-indigo-500',
 ];
 
-function stableGradient(userId: string) {
+function stableGradient(key: string) {
   let hash = 0;
-  for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 }
 
@@ -46,23 +61,59 @@ function formatRelativeTime(iso: string) {
   return `לפני ${Math.floor(h / 24)} ימים`;
 }
 
-const tasks = [
-  { label: "צ'ק-אין חניכים", progress: 85, color: 'bg-summer-sky' },
-  { label: 'איסוף ציוד ערב', progress: 30, color: 'bg-sunset-orange' },
-  { label: 'דיווח נוכחות סגל', progress: 100, color: 'bg-emerald-500' },
-];
+/** staff(full_name) embeds may come back as a single joined object or an array — guard both shapes. */
+function staffFullName(staffField: unknown): string | null {
+  const s = staffField as { full_name?: string } | { full_name?: string }[] | null | undefined;
+  if (Array.isArray(s)) return s[0]?.full_name ?? null;
+  return s?.full_name ?? null;
+}
 
-const schedule = [
-  { time: '16:00', title: 'סדנת יצירה', sub: 'חטיבה תחתונה', active: true },
-  { time: '17:30', title: 'זמן חופשי', sub: 'בריכה/מגרשים', active: false },
-  { time: '19:30', title: 'ארוחת ערב', sub: 'חדר אוכל מרכזי', active: false },
-];
+function likesSummary(likes: PostLike[]): string {
+  const names = likes.map(l => l.fullName);
+  if (names.length === 0) return '';
+  if (names.length === 1) return `${names[0]} אהב/ה את זה`;
+  if (names.length === 2) return `${names[0]} ו-${names[1]} אהבו את זה`;
+  return `${names[0]}, ${names[1]} ו-${names.length - 2} נוספים אהבו את זה`;
+}
 
-function FeedCard({ post }: { post: FeedPost }) {
-  const [liked, setLiked] = useState(false);
+interface SidebarTask {
+  id: string;
+  title: string;
+  status: string;
+}
+
+function taskStatusMeta(status: string): { label: string; variant: 'info' | 'warning'; icon: string } {
+  if (status === 'בתהליך') return { label: 'בתהליך', variant: 'info', icon: 'autorenew' };
+  return { label: 'לביצוע', variant: 'warning', icon: 'schedule' };
+}
+
+interface FeedCardProps {
+  post: FeedPost;
+  currentUserId: string | undefined;
+  currentUserName: string;
+  onToggleLike: (post: FeedPost) => void;
+  onAddComment: (postId: string, content: string) => Promise<void>;
+}
+
+function FeedCard({ post, currentUserId, currentUserName, onToggleLike, onAddComment }: FeedCardProps) {
+  const [commentText, setCommentText] = useState('');
+  const [submitting, setSubmitting]   = useState(false);
+
+  const isLiked = !!currentUserId && post.likes.some(l => l.staffId === currentUserId);
+  const summary = likesSummary(post.likes);
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = commentText.trim();
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
+    await onAddComment(post.id, trimmed);
+    setCommentText('');
+    setSubmitting(false);
+  };
 
   return (
-    <article className="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden text-right">
+    <article className="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden text-right" dir="rtl">
       {/* Header: avatar rightmost, name/time to its left, more-button on far left */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -93,43 +144,71 @@ function FeedCard({ post }: { post: FeedPost }) {
       )}
 
       {/* Actions: like+comment on right (start), share on far left (end) */}
-      <div className="px-4 py-3 flex items-center justify-between border-t border-slate-50">
-        <div className="flex gap-5">
-          <button
-            onClick={() => setLiked(!liked)}
-            className={`flex items-center gap-1.5 transition-colors ${liked ? 'text-vibrant-pink' : 'text-slate-400 hover:text-vibrant-pink'}`}
-          >
-            <Icon name="favorite" fill={liked} className="text-xl" />
-          </button>
-          <button className="flex items-center gap-1.5 text-slate-400 hover:text-summer-sky transition-colors">
-            <Icon name="chat_bubble" className="text-xl" />
+      <div className="px-4 py-3 border-t border-slate-50">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-5">
+            <button
+              onClick={() => onToggleLike(post)}
+              className={`flex items-center gap-1.5 transition-colors ${isLiked ? 'text-vibrant-pink' : 'text-slate-400 hover:text-vibrant-pink'}`}
+            >
+              <Icon name="favorite" fill={isLiked} className="text-xl" />
+            </button>
+            <button className="flex items-center gap-1.5 text-slate-400 hover:text-summer-sky transition-colors">
+              <Icon name="chat_bubble" className="text-xl" />
+            </button>
+          </div>
+          <button className="text-slate-400 hover:text-summer-sky transition-colors">
+            <Icon name="share" className="text-xl" />
           </button>
         </div>
-        <button className="text-slate-400 hover:text-summer-sky transition-colors">
-          <Icon name="share" className="text-xl" />
-        </button>
+        {summary && (
+          <p className="text-xs text-slate-500 mt-2 text-right">{summary}</p>
+        )}
       </div>
 
+      {/* Comments list */}
+      {post.comments.length > 0 && (
+        <div className="px-4 pb-3 space-y-3 border-t border-slate-50 pt-3">
+          {post.comments.map((c) => (
+            <div key={c.id} className="flex gap-2 items-start text-right">
+              <Avatar initials={getInitials(c.authorName)} gradient={stableGradient(c.authorName)} size="sm" />
+              <div className="flex-1 bg-slate-50 rounded-2xl px-3 py-2 min-w-0">
+                <p className="text-xs font-bold text-deep-slate">{c.authorName}</p>
+                <p className="text-xs text-slate-600 mt-0.5 whitespace-pre-line">{c.content}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Comment Box: avatar on right, input in middle, send button on far left */}
-      <div className="px-4 pb-4 flex gap-2 items-center">
-        <Avatar initials="מ" gradient="from-summer-sky to-blue-400" size="sm" />
+      <form onSubmit={handleSubmitComment} className="px-4 pb-4 flex gap-2 items-center" dir="rtl">
+        <Avatar initials={getInitials(currentUserName || '?')} gradient="from-summer-sky to-blue-400" size="sm" />
         <input
           type="text"
+          value={commentText}
+          onChange={e => setCommentText(e.target.value)}
           placeholder="הוסיפו תגובה..."
           className="flex-1 bg-slate-50 border-none rounded-full py-2 px-4 text-sm text-right placeholder:text-slate-400 focus:ring-2 focus:ring-summer-sky/30 outline-none"
         />
-        <Button className="text-xs py-2 px-4 shrink-0">שלח</Button>
-      </div>
+        <Button type="submit" disabled={submitting || !commentText.trim()} className="text-xs py-2 px-4 shrink-0">
+          {submitting ? <Icon name="refresh" className="text-sm animate-spin" /> : 'שלח'}
+        </Button>
+      </form>
     </article>
   );
 }
 
 export default function FeedPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authorName, setAuthorName]   = useState('');
   const [posts, setPosts]             = useState<FeedPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
+
+  const [openTasks, setOpenTasks]           = useState<SidebarTask[]>([]);
+  const [openTasksCount, setOpenTasksCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -151,32 +230,38 @@ export default function FeedPage() {
     fetchAuthor();
   }, [user]);
 
-  async function fetchPosts() {
-    setLoadingPosts(true);
+  async function fetchPosts(opts: { silent?: boolean } = {}) {
+    if (!opts.silent) setLoadingPosts(true);
 
-    const { data: rawPosts, error } = await supabase
+    const { data, error } = await supabase
       .from('post')
-      .select('id, content, image_url, user_id, created_at')
+      .select('*, staff(full_name), post_likes(staff_id, staff(full_name)), post_comments(id, content, created_at, staff(full_name))')
       .order('created_at', { ascending: false });
 
-    if (error || !rawPosts?.length) {
+    if (error || !data) {
+      console.error(error);
       setPosts([]);
-      setLoadingPosts(false);
+      if (!opts.silent) setLoadingPosts(false);
       return;
     }
 
-    const userIds = [...new Set(rawPosts.map(p => p.user_id))];
-    const [{ data: staffRows }, { data: camperRows }] = await Promise.all([
-      supabase.from('staff').select('id, full_name').in('id', userIds),
-      supabase.from('camper').select('id, full_name').in('id', userIds),
-    ]);
+    setPosts(data.map((p: any) => {
+      const name = staffFullName(p.staff) ?? 'משתמש לא ידוע';
 
-    const authorMap = new Map<string, string>();
-    staffRows?.forEach(s => authorMap.set(s.id, s.full_name));
-    camperRows?.forEach(c => { if (!authorMap.has(c.id)) authorMap.set(c.id, c.full_name); });
+      const likes: PostLike[] = (p.post_likes ?? []).map((l: any) => ({
+        staffId: l.staff_id,
+        fullName: staffFullName(l.staff) ?? 'לא ידוע',
+      }));
 
-    setPosts(rawPosts.map(p => {
-      const name = authorMap.get(p.user_id) ?? 'משתמש לא ידוע';
+      const comments: PostComment[] = (p.post_comments ?? [])
+        .map((c: any) => ({
+          id: c.id,
+          authorName: staffFullName(c.staff) ?? 'לא ידוע',
+          content: c.content,
+          createdAt: c.created_at,
+        }))
+        .sort((a: PostComment, b: PostComment) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
       return {
         id: p.id,
         authorName: name,
@@ -185,14 +270,54 @@ export default function FeedPage() {
         content: p.content,
         imageUrl: p.image_url,
         createdAt: p.created_at,
+        likes,
+        comments,
       };
     }));
 
-    setLoadingPosts(false);
+    if (!opts.silent) setLoadingPosts(false);
+  }
+
+  async function handleToggleLike(post: FeedPost) {
+    if (!user) return;
+    const alreadyLiked = post.likes.some(l => l.staffId === user.id);
+
+    const { error } = alreadyLiked
+      ? await supabase.from('post_likes').delete().eq('post_id', post.id).eq('staff_id', user.id)
+      : await supabase.from('post_likes').insert({ post_id: post.id, staff_id: user.id });
+
+    if (error) { console.error('[handleToggleLike]', error); return; }
+    await fetchPosts({ silent: true });
+  }
+
+  async function handleAddComment(postId: string, content: string) {
+    if (!user) return;
+    const { error } = await supabase.from('post_comments').insert({ post_id: postId, staff_id: user.id, content });
+    if (error) { console.error('[handleAddComment]', error); return; }
+    await fetchPosts({ silent: true });
+  }
+
+  async function fetchOpenTasks() {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('id, title, status')
+      .neq('status', 'הושלם')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setOpenTasks([]);
+      setOpenTasksCount(0);
+      return;
+    }
+
+    setOpenTasksCount(data?.length ?? 0);
+    setOpenTasks((data ?? []).slice(0, 4));
   }
 
   useEffect(() => {
     fetchPosts();
+    fetchOpenTasks();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -237,7 +362,16 @@ export default function FeedPage() {
               <p className="text-sm mt-1">היו הראשונים לשתף עדכון מהמחנה!</p>
             </div>
           ) : (
-            posts.map(post => <FeedCard key={post.id} post={post} />)
+            posts.map(post => (
+              <FeedCard
+                key={post.id}
+                post={post}
+                currentUserId={user?.id}
+                currentUserName={authorName}
+                onToggleLike={handleToggleLike}
+                onAddComment={handleAddComment}
+              />
+            ))
           )}
         </div>
       </div>
@@ -248,61 +382,43 @@ export default function FeedPage() {
         {/* Tasks Widget */}
         <Card className="p-5 text-right">
           <div className="flex justify-between items-center mb-4">
-            <Badge variant="info">8 משימות</Badge>
+            <Badge variant="info">{openTasksCount} משימות</Badge>
             <h3 className="font-bold text-deep-slate text-sm">משימות פתוחות</h3>
           </div>
-          <div className="space-y-4">
-            {tasks.map((task, i) => (
-              <div key={i} className="space-y-1">
-                <div className="flex justify-between text-xs font-medium text-slate-500">
-                  <span>{task.progress}%</span>
-                  <span>{task.label}</span>
-                </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div className={`${task.color} h-full rounded-full transition-all duration-700`} style={{ width: `${task.progress}%` }} />
-                </div>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {openTasks.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-3">אין משימות פתוחות 🎉</p>
+            ) : (
+              openTasks.map((task) => {
+                const meta = taskStatusMeta(task.status);
+                return (
+                  <div key={task.id} className="flex items-center justify-between gap-2">
+                    <Badge variant={meta.variant} className="shrink-0">{meta.label}</Badge>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <p className="text-xs font-bold text-slate-700 truncate">{task.title}</p>
+                      <Icon name={meta.icon} className="text-base text-slate-400 shrink-0" />
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
-          <button className="w-full mt-5 text-summer-sky text-xs font-bold hover:underline text-right">
+          <button
+            onClick={() => navigate('/tasks')}
+            className="w-full mt-5 text-summer-sky text-xs font-bold hover:underline text-right"
+          >
             לכל המשימות ›
           </button>
         </Card>
 
-        {/* Schedule Widget */}
-        <Card className="p-5 text-right">
-          <h3 className="font-bold text-deep-slate text-sm mb-4">לו"ז יומי — 14 יולי</h3>
-          <div className="space-y-4">
-            {schedule.map((item, i) => (
-              <div key={i} className="flex gap-3 items-start">
-                <span className={`font-bold text-xs pt-0.5 w-12 text-left shrink-0 ${item.active ? 'text-summer-sky' : 'text-slate-400'}`}>{item.time}</span>
-                <div className={`border-r-2 pr-3 flex-1 ${item.active ? 'border-summer-sky' : 'border-slate-100'}`}>
-                  <p className={`text-xs font-bold ${item.active ? 'text-deep-slate' : 'text-slate-500'}`}>{item.title}</p>
-                  <p className="text-[10px] text-slate-400">{item.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
         {/* Emergency Button */}
-        <button className="w-full bg-error text-white py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-red-200/50 hover:brightness-95 active:scale-95 transition-all">
+        <button
+          onClick={() => navigate('/incidents')}
+          className="w-full bg-error text-white py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-red-200/50 hover:brightness-95 active:scale-95 transition-all"
+        >
           <Icon name="emergency_home" fill className="text-2xl" />
           דיווח אירוע חריג
         </button>
-
-        {/* Weather Card */}
-        <div className="bg-gradient-to-br from-summer-sky/20 to-blue-100 rounded-2xl p-5 border border-sky-100 text-right">
-          <div className="flex justify-between items-start mb-3">
-            <span className="text-3xl">☀️</span>
-            <div>
-              <p className="text-xs text-sky-700 font-bold">מזג אוויר היום</p>
-              <p className="text-xs text-sky-600">מחנה שטח B, ישראל</p>
-            </div>
-          </div>
-          <p className="text-3xl font-black text-sky-700">28°</p>
-          <p className="text-xs text-sky-600 mt-1">שמש עם עננות קלה, לחות 55%</p>
-        </div>
       </aside>
     </div>
 
@@ -310,7 +426,7 @@ export default function FeedPage() {
       isOpen={isModalOpen}
       onClose={() => setIsModalOpen(false)}
       authorName={authorName}
-      onSuccess={fetchPosts}
+      onSuccess={() => fetchPosts()}
     />
     </>
   );
