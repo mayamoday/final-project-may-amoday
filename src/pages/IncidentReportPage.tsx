@@ -22,7 +22,12 @@ interface RecentEvent {
   event_type: string;
   severity: string;
   event_date: string;
+  event_time: string | null;
+  location: string | null;
   description: string | null;
+  actions_taken: string | null;
+  witnesses: string | null;
+  requires_follow_up: boolean | null;
   camper: { full_name: string }[] | null;
 }
 
@@ -72,6 +77,7 @@ export default function IncidentReportPage() {
   // Data
   const [campers, setCampers]         = useState<Camper[]>([]);
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<RecentEvent | null>(null);
 
   // UI state
   const [loading, setLoading]     = useState(false);
@@ -91,7 +97,7 @@ export default function IncidentReportPage() {
   async function fetchRecentEvents() {
     const { data } = await supabase
       .from('events')
-      .select('id, event_type, severity, event_date, description, camper(full_name)')
+      .select('id, event_type, severity, event_date, event_time, location, description, actions_taken, witnesses, requires_follow_up, camper(full_name)')
       .order('created_at', { ascending: false })
       .limit(5);
     setRecentEvents((data ?? []) as unknown as RecentEvent[]);
@@ -178,7 +184,7 @@ export default function IncidentReportPage() {
           </div>
           <h2 className="text-h2-section text-deep-slate font-bold mb-2">הדיווח נשלח בהצלחה!</h2>
           <p className="text-body-medium text-slate-500 mb-8">
-            הדיווח הועבר למפקדה ולנציג הבטיחות.
+            הדיווח הועבר למערכת ולנציג הבטיחות.
           </p>
           <Button variant="ghost" onClick={() => setSubmitted(false)}>
             <Icon name="add" className="text-lg" />
@@ -421,7 +427,7 @@ export default function IncidentReportPage() {
             </button>
             <div className="text-right">
               <p className="text-sm font-bold text-deep-slate">נדרש מעקב</p>
-              <p className="text-xs text-slate-400">האירוע מצריך התייחסות נוספת מהמפקדה</p>
+              <p className="text-xs text-slate-400">האירוע מצריך התייחסות נוספת מהמערכת</p>
             </div>
           </div>
         </Card>
@@ -453,7 +459,7 @@ export default function IncidentReportPage() {
             ) : (
               <>
                 <Icon name="send" className="text-xl" />
-                שליחת דיווח למפקדה
+                שליחת דיווח למערכת
               </>
             )}
           </Button>
@@ -468,7 +474,11 @@ export default function IncidentReportPage() {
             <Card className="p-6 text-center text-slate-400 text-sm">אין דיווחים עדיין</Card>
           ) : (
             recentEvents.map((ev) => (
-              <Card key={ev.id} className="p-4 flex items-center justify-between hover:shadow-md transition-all">
+              <Card
+                key={ev.id}
+                onClick={() => setSelectedEvent(ev)}
+                className="p-4 flex items-center justify-between hover:shadow-md transition-all cursor-pointer"
+              >
                 {/* Right side: icon + main text */}
                 <div className="flex items-center gap-3 text-right">
                   <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
@@ -489,7 +499,7 @@ export default function IncidentReportPage() {
                   <Badge variant={severityBadge[ev.severity] ?? 'info'}>{ev.severity}</Badge>
                   <button
                     type="button"
-                    onClick={() => handleDelete(ev.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(ev.id); }}
                     aria-label="מחיקת דיווח"
                     title="מחיקה"
                     className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
@@ -502,6 +512,75 @@ export default function IncidentReportPage() {
           )}
         </div>
       </div>
+
+      {/* ── Incident Summary Modal ── */}
+      {selectedEvent && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" dir="rtl">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedEvent(null)} />
+
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <button
+                onClick={() => setSelectedEvent(null)}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <Icon name="close" className="text-xl" />
+              </button>
+              <div className="text-right">
+                <h2 className="font-black text-deep-slate text-base">סיכום האירוע</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {formatDate(selectedEvent.event_date)}{selectedEvent.event_time ? ` · ${selectedEvent.event_time}` : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4 text-right">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <Badge variant="neutral">{selectedEvent.event_type}</Badge>
+                <Badge variant={severityBadge[selectedEvent.severity] ?? 'info'}>{selectedEvent.severity}</Badge>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-slate-400 mb-1">חניך מעורב</p>
+                <p className="text-sm font-bold text-deep-slate">{selectedEvent.camper?.[0]?.full_name ?? 'לא צוין'}</p>
+              </div>
+
+              {selectedEvent.location && (
+                <div>
+                  <p className="text-xs font-bold text-slate-400 mb-1">מיקום</p>
+                  <p className="text-sm text-slate-700">{selectedEvent.location}</p>
+                </div>
+              )}
+
+              {selectedEvent.witnesses && (
+                <div>
+                  <p className="text-xs font-bold text-slate-400 mb-1">עדים</p>
+                  <p className="text-sm text-slate-700">{selectedEvent.witnesses}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-xs font-bold text-slate-400 mb-1">תיאור האירוע</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{selectedEvent.description || '—'}</p>
+              </div>
+
+              {selectedEvent.actions_taken && (
+                <div>
+                  <p className="text-xs font-bold text-slate-400 mb-1">פעולות שננקטו</p>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{selectedEvent.actions_taken}</p>
+                </div>
+              )}
+
+              {selectedEvent.requires_follow_up && (
+                <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl p-3 justify-end">
+                  <p className="text-sm text-orange-600 font-bold">נדרש מעקב נוסף מהמערכת</p>
+                  <Icon name="info" className="text-orange-500 text-lg" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
