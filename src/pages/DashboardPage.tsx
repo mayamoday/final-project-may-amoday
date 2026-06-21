@@ -137,7 +137,7 @@ export default function DashboardPage() {
       {/* ── Welcome Header ── */}
       <PageHeader
         title={`שלום, ${displayName || '...'} 👋`}
-        subtitle="הנה מה שקורה היום בקייטנה"
+        subtitle="הנה מה שקורה היום במחנה"
         actions={
           <Card className="px-4 py-2.5 flex items-center gap-2">
             <Icon name="calendar_today" className="text-vibrant-pink text-xl" fill />
@@ -173,13 +173,13 @@ export default function DashboardPage() {
               <Icon name="trending_up" className="text-slate-400 text-xl" />
               <h3 className="font-bold text-slate-800 text-sm">ניצול תקציב</h3>
             </div>
-            <div className="flex items-baseline gap-2 mb-2 justify-end">
-              <span className="text-xs text-slate-400">מתוך ₪{TOTAL_BUDGET.toLocaleString()}</span>
+            <div className="flex items-baseline gap-2 mb-2 justify-start">
               <span className="text-4xl font-black text-deep-slate">{usedPct}%</span>
+              <span className="text-xs text-slate-400">מתוך ₪{TOTAL_BUDGET.toLocaleString()}</span>
             </div>
             <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-700 ${isOverBudget ? 'bg-error' : 'bg-vibrant-pink'}`}
+                className={`h-full rounded-full ml-auto transition-all duration-700 ${isOverBudget ? 'bg-error' : 'bg-vibrant-pink'}`}
                 style={{ width: `${usedPct}%` }}
               />
             </div>
