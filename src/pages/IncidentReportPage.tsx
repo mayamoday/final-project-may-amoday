@@ -97,6 +97,16 @@ export default function IncidentReportPage() {
     setRecentEvents((data ?? []) as unknown as RecentEvent[]);
   }
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק את הדיווח?')) return;
+    const { error: deleteError } = await supabase.from('events').delete().eq('id', id);
+    if (deleteError) {
+      setError('שגיאה במחיקת הדיווח: ' + deleteError.message);
+      return;
+    }
+    await fetchRecentEvents();
+  };
+
   const toggleWitness = (id: string) => {
     setWitnesses(prev => prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id]);
   };
@@ -473,10 +483,19 @@ export default function IncidentReportPage() {
                     </p>
                   </div>
                 </div>
-                {/* Left side: severity badge + date */}
+                {/* Left side: severity badge + date + delete */}
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-xs text-slate-400">{formatDate(ev.event_date)}</span>
                   <Badge variant={severityBadge[ev.severity] ?? 'info'}>{ev.severity}</Badge>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(ev.id)}
+                    aria-label="מחיקת דיווח"
+                    title="מחיקה"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <Icon name="delete" className="text-base" />
+                  </button>
                 </div>
               </Card>
             ))
