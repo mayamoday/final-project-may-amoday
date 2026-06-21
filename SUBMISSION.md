@@ -16,14 +16,177 @@
 
 ```mermaid
 erDiagram
-    staff ||--o{ tasks : "assigned to"
+    auth_users   ||--o| profiles        : "has"
+    auth_users   ||--o{ study_sessions  : "owns"
+    auth_users   ||--o{ tasks           : "owns"
+    study_sessions ||--o{ tasks         : "contains"
+    staff        ||--o{ tasks           : "assigned to"
+    staff        ||--o{ post            : "authors"
+    staff        ||--o{ expense         : "reports"
+    staff        ||--o{ document        : "authors"
+    staff        ||--o{ events          : "reports"
+    staff        ||--o{ staff_campers   : "links"
+    staff        ||--o{ post_likes      : "gives"
+    staff        ||--o{ post_comments   : "writes"
+    camper       ||--o{ document        : "has"
+    camper       ||--o{ events          : "involved in"
+    camper       ||--o{ staff_campers   : "links"
+    camper       ||--o{ parent_inquiries: "subject of"
+    post         ||--o{ post_likes      : "receives"
+    post         ||--o{ post_comments   : "has"
+
+    auth_users {
+        uuid id PK
+    }
+
+    profiles {
+        uuid id PK
+        uuid user_id FK "UNIQUE"
+        text full_name
+        text avatar_url
+        timestamptz created_at
+    }
+
+    study_sessions {
+        uuid id PK
+        uuid user_id FK
+        text title
+        text description
+        integer duration_minutes
+        timestamptz started_at
+        timestamptz created_at
+    }
+
+    tasks {
+        uuid id PK
+        uuid user_id FK
+        uuid session_id FK
+        text title
+        boolean completed
+        timestamptz created_at
+        text description
+        text status
+        text priority
+        uuid assignee_id FK
+        date due_date
+        text category
+    }
+
     staff {
         uuid id PK
         text full_name
+        text role
+        text email
+        text avatar_url
+        timestamptz created_at
+        text phone
     }
-    tasks {
+
+    camper {
         uuid id PK
-        uuid assignee_id FK
+        text full_name
+        integer age
+        text medical_notes
+        text avatar_url
+        timestamptz created_at
+        text parent_name
+        date birth_date
+        text shirt_size
+        text parent_phone
+        text parent_email
+        text critical_medical_info
+        text dietary_requirements
+        text medications
+        text profile_image_url
+        text age_group
+        text tent
+        text group_name
+    }
+
+    post {
+        uuid id PK
+        text content
+        text image_url
+        uuid user_id FK
+        timestamptz created_at
+    }
+
+    expense {
+        uuid id PK
+        text description
+        numeric amount
+        text category
+        text receipt_url
+        uuid reporter_id FK
+        timestamptz created_at
+        date date
+        text status
+    }
+
+    document {
+        uuid id PK
+        text file_name
+        text file_url
+        text file_type
+        uuid camper_id FK
+        timestamptz created_at
+        text content
+        text type
+        uuid author_id FK
+        text title
+        text description
+        text category
+    }
+
+    staff_campers {
+        uuid staff_id PK,FK
+        uuid camper_id PK,FK
+    }
+
+    events {
+        uuid id PK
+        text event_type
+        text severity
+        date event_date
+        time event_time
+        text location
+        uuid camper_id FK
+        text witnesses
+        uuid reporter_id FK
+        text description
+        text actions_taken
+        boolean requires_follow_up
+        timestamptz created_at
+    }
+
+    camp_settings {
+        integer id PK
+        numeric total_budget
+    }
+
+    parent_inquiries {
+        uuid id PK
+        uuid camper_id FK
+        text parent_name
+        text subject
+        text message
+        text status
+        timestamptz created_at
+    }
+
+    post_likes {
+        uuid id PK
+        uuid post_id FK
+        uuid staff_id FK
+        timestamptz created_at
+    }
+
+    post_comments {
+        uuid id PK
+        uuid post_id FK
+        uuid staff_id FK
+        text content
+        timestamptz created_at
     }
 ```
 
