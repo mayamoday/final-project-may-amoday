@@ -170,8 +170,8 @@ export default function DashboardPage() {
         <Card className="md:col-span-4 p-6 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-4">
-              <Icon name="trending_up" className="text-slate-400 text-xl" />
               <h3 className="font-bold text-slate-800 text-sm">ניצול תקציב</h3>
+              <Icon name="trending_up" className="text-slate-400 text-xl" />
             </div>
             <div className="flex items-baseline gap-2 mb-2 justify-start">
               <span className="text-4xl font-black text-deep-slate">{usedPct}%</span>
