@@ -6,9 +6,12 @@
 
 🔗 [https://final-project-may-amoday.vercel.app](https://final-project-may-amoday.vercel.app)
 
-## 2. קישור ל-GitHub (עם README)
+## 2. קישור ל-GitHub (עם README) 
 
 🔗 [https://github.com/mayamoday/final-project-may-amoday](https://github.com/mayamoday/final-project-may-amoday)
+
+##### שם משתמש לאתר (משתמש סגל) : maysy12@gmail.com  סיסמא: Aa123456
+
 
 ## 3. תרשים ERD של בסיס הנתונים
 

@@ -1,73 +1,37 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
+# 🏕️ My Camp - מערכת לניהול משלחות למחנות קיץ
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📌 סקירה כללית
 
-## React Compiler
+**My Camp** היא מערכת אינטרנטית מקיפה (Full-Stack) שנועדה לרכז ולנהל את כלל המידע והלוגיסטיקה של משלחות מחנות קיץ בארצות הברית (בדגש על משלחות הסוכנות היהודית). המערכת מאגדת במקום אחד נתונים רפואיים, מעקב תקציבי, דיווחי אירועים ועדכונים שוטפים להורים.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ❗ איזו בעיה הפרויקט פותר?
 
-## Expanding the ESLint configuration
+כיום, ראשי משלחות נאלצים לנהל כמות עצומה של מידע על גבי פלטפורמות מפוזרות (קלסרים פיזיים, קבוצות וואטסאפ, וקובצי אקסל). כתוצאה מכך:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- מידע קריטי (כמו רגישויות למזון, מסמכי ביטוח או מספרי חירום) הולך לאיבוד או שקש  ה לשלוף אותו ברגע האמת.
+- מעקב ההוצאות וניהול התקציב נעשה בצורה מסורבלת.
+- התקשורת עם ההורים בארץ הופכת לכאוטית ומוצפת בהודעות פרטיות בווצאפ, ללא תיעוד מסודר.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🎯 קהל היעד
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+המערכת משרתת שני קהלי יעד עיקריים, החל משלב ההכנות בארץ ועד לסיום המחנה בחו"ל:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **צוות המשלחת (ראשי משלחות ורכזים):** משתמשים במערכת ככלי עבודה מרכזי לשליפת מידע חיוני על חניכים בשטח, תיעוד הוצאות תקציב, ניהול משימות ודיווח על אירועי בטיחות בזמן אמת.
+2. **הורי החניכים:** משתמשים במערכת כדי לצפות בפיד עדכונים יומי (תמונות, סיכומי יום) ולהיות בקשר מסודר עם הצוות מתוך שקט נפשי.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+אציין בזאת כי בשלב זה של הפרויקט, הפיתוח התמקד במערכת לסגל והממשקים המיועדים להורים יפותחו בהמשך.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 💡 מתחרים ובידול
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **ניהול ידני (Google Sheets / קלסרים):** פתרון מפוזר הדורש תחזוקה ידנית רבה. **הבידול שלנו:** ריכוז אוטומטי של המידע, ממשק נגיש מהנייד בשטח, והתראות ויזואליות (למשל חיווי ברור על אלרגיה בפרופיל החניך).
+- **WhatsApp (תקשורת הורים):** הודעות ותמונות "נבלעות" בהמון. **הבידול שלנו:** יצירת "פיד יומי" ייעודי וארכיון מסודר לתמונות שאינו מכביד על אחסון הטלפון.
+- **מערכות CRM וניהול מחנות (כגון CampMinder):** מערכות ארגוניות ענקיות, יקרות מאוד ובעלות עקומת למידה גבוהה. **הבידול שלנו:** מערכת קלילה ופשוטה לתפעול שנבנתה "מהשטח" על ידי ראש משלחת, ומותאמת בדיוק לצרכים הספציפיים ולתהליכי העבודה של המשלחות הישראליות, ללא פיצ'רים מיותרים ומסורבלים.
+
+## איך השתמשתי בAI?
+
+בעיקרון עבדתי עם 2 סוכני AI מרכזיים. סוכן AI שנמצא בדפדפן שלי ולו הסברתי כל שינוי שאני רוצה לבצע במערכת בצורה המפורטת ביותר והוא כתב לי שאילתות לבסיס הנתונים ופרומפט לסוכן AI השני שנמצא בתוך ה coding asistant שלי. השיטה שלי לעבודה בצורה הכי מסודרת היה לעבור דף דף לפי מפת האתר שיצרתי באחת מהמטלות וביחד עם סוכני הAI לבנות את הדף ולסנכרן אותו לבסיס הנתונים עד שאגיע לתוצאה הרצויה. לאחר שבניתי את הדפים עבדתי על האינטגרציה בין הדפים. כשכבתי לסוכן הAI בדפדפן מה הבעיה/ מה אני רוצה והוא כתב לי פרומפטים מדוקיים לסוכן הAI בקוד.
+
+## הקישורים לפרוייקט החי שלי ותרשים הERD נמצאים בקובץ הSUBMISSION
+
