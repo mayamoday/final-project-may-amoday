@@ -66,8 +66,8 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { language, setLanguage, compactView, setCompactView, showAvatars, setShowAvatars } = useUIPreferences();
   const { setProfile: setGlobalProfile } = useProfile();
-  const [saved, setSaved]               = useState(false);
-  const [saveError, setSaveError]       = useState<string | null>(null);
+  const [status, setStatus]             = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Profile state
@@ -77,27 +77,33 @@ export default function SettingsPage() {
   const [phone, setPhone]               = useState('');
   const [avatarUrl, setAvatarUrl]       = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [newPassword, setNewPassword]   = useState('');
 
   useEffect(() => {
     if (!user) return;
 
     async function fetchProfile() {
-      const { data, error } = await supabase
-        .from('staff')
-        .select('full_name, role, email, phone, avatar_url')
-        .eq('id', user!.id)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from('staff')
+          .select('full_name, role, email, phone, avatar_url')
+          .eq('id', user!.id)
+          .limit(1)
+          .maybeSingle();
 
-      if (error) {
-        console.error('[SettingsPage] fetch profile failed:', error);
-        return;
-      }
-      if (data) {
-        setName(data.full_name ?? '');
-        setRole(data.role ?? '');
-        setEmail(data.email ?? '');
-        setPhone(data.phone ?? '');
-        setAvatarUrl(data.avatar_url ?? null);
+        if (error) {
+          console.error('[SettingsPage] fetch profile failed:', error);
+          return;
+        }
+        if (data) {
+          setName(data.full_name ?? '');
+          setRole(data.role ?? '');
+          setEmail(data.email ?? '');
+          setPhone(data.phone ?? '');
+          setAvatarUrl(data.avatar_url ?? null);
+        }
+      } catch (err) {
+        console.error('[SettingsPage] fetch profile threw:', err);
       }
     }
 
@@ -108,25 +114,50 @@ export default function SettingsPage() {
   }, [user?.id]);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    alert('מתחיל לשמור...');
     e.preventDefault();
     if (!user) return;
 
-    setSaveError(null);
+    setStatus('idle');
+    setErrorMessage('');
 
-    const { error } = await supabase
-      .from('staff')
-      .update({ full_name: name, role, email, phone })
-      .eq('id', user.id);
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .update({ full_name: name, role: role, email: email, phone: phone })
+        .eq('id', user.id);
 
-    if (error) {
-      console.error('[SettingsPage] save profile failed:', error);
-      setSaveError('שגיאה בשמירת ההגדרות: ' + error.message);
-      return;
+      if (error) {
+        alert('שגיאה מהמחסן: ' + error.message);
+        console.error('[SettingsPage] save profile failed:', error);
+        setStatus('error');
+        setErrorMessage(error.message);
+        return;
+      }
+
+      if (newPassword) {
+        const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
+
+        if (authError) {
+          alert('שגיאה בעדכון הסיסמה: ' + authError.message);
+          console.error('[SettingsPage] password update failed:', authError);
+          setStatus('error');
+          setErrorMessage(authError.message);
+          return;
+        }
+
+        setNewPassword('');
+      }
+
+      alert('הפרטים נשמרו בהצלחה במחסן!');
+      setGlobalProfile({ fullName: name });
+      setStatus('success');
+      setTimeout(() => setStatus('idle'), 3000);
+    } catch (err) {
+      console.error('[SettingsPage] save profile threw:', err);
+      setStatus('error');
+      setErrorMessage(err instanceof Error ? err.message : 'אירעה שגיאה לא צפויה');
     }
-
-    setGlobalProfile({ fullName: name });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,38 +166,46 @@ export default function SettingsPage() {
     if (!file || !user) return;
 
     setAvatarUploading(true);
-    setSaveError(null);
+    setStatus('idle');
+    setErrorMessage('');
 
-    const ext = /\.([a-zA-Z0-9]+)$/.exec(file.name)?.[1]?.toLowerCase() ?? 'jpg';
-    const filePath = `${user.id}-${Date.now()}.${ext}`;
+    try {
+      const ext = /\.([a-zA-Z0-9]+)$/.exec(file.name)?.[1]?.toLowerCase() ?? 'jpg';
+      const filePath = `${user.id}-${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
 
-    if (uploadError) {
-      console.error('[SettingsPage] avatar upload failed:', uploadError);
-      setSaveError('שגיאה בהעלאת התמונה: ' + uploadError.message);
+      if (uploadError) {
+        console.error('[SettingsPage] avatar upload failed:', uploadError);
+        setStatus('error');
+        setErrorMessage(uploadError.message);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const newUrl = urlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from('staff')
+        .update({ avatar_url: newUrl })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('[SettingsPage] avatar_url update failed:', updateError);
+        setStatus('error');
+        setErrorMessage(updateError.message);
+        return;
+      }
+
+      setAvatarUrl(newUrl);
+      setGlobalProfile({ avatarUrl: newUrl });
+    } catch (err) {
+      console.error('[SettingsPage] avatar update threw:', err);
+      setStatus('error');
+      setErrorMessage(err instanceof Error ? err.message : 'אירעה שגיאה לא צפויה');
+    } finally {
       setAvatarUploading(false);
-      return;
     }
-
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-    const newUrl = urlData.publicUrl;
-
-    const { error: updateError } = await supabase
-      .from('staff')
-      .update({ avatar_url: newUrl })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('[SettingsPage] avatar_url update failed:', updateError);
-      setSaveError('שגיאה בשמירת התמונה: ' + updateError.message);
-      setAvatarUploading(false);
-      return;
-    }
-
-    setAvatarUrl(newUrl);
-    setGlobalProfile({ avatarUrl: newUrl });
-    setAvatarUploading(false);
   };
 
   return (
@@ -178,17 +217,17 @@ export default function SettingsPage() {
         iconColor="text-slate-500"
       />
 
-      {saved && (
+      {status === 'success' && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3 text-right">
           <Icon name="check_circle" fill className="text-xl text-emerald-500 shrink-0" />
           <p className="text-sm font-bold text-emerald-700">ההגדרות נשמרו בהצלחה!</p>
         </div>
       )}
 
-      {saveError && (
+      {status === 'error' && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3 text-right">
           <Icon name="error" fill className="text-xl text-red-500 shrink-0" />
-          <p className="text-sm font-bold text-red-600">{saveError}</p>
+          <p className="text-sm font-bold text-red-600">שגיאה בשמירת הנתונים: {errorMessage}</p>
         </div>
       )}
 
@@ -277,19 +316,24 @@ export default function SettingsPage() {
         {/* ── Security Section ── */}
         <Section title="אבטחה וסיסמה" icon="lock">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { label: 'סיסמה נוכחית', placeholder: '••••••••' },
-              { label: 'סיסמה חדשה',   placeholder: 'הכנס סיסמה חדשה...' },
-            ].map((field) => (
-              <div key={field.label} className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-500 text-right">{field.label}</label>
-                <input
-                  type="password"
-                  placeholder={field.placeholder}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-summer-sky/30 outline-none text-right placeholder:text-slate-400"
-                />
-              </div>
-            ))}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-500 text-right">סיסמה נוכחית</label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-summer-sky/30 outline-none text-right placeholder:text-slate-400"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-500 text-right">סיסמה חדשה</label>
+              <input
+                type="password"
+                placeholder="הכנס סיסמה חדשה..."
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-summer-sky/30 outline-none text-right placeholder:text-slate-400"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-right">
             <Icon name="info" fill className="text-amber-500 text-lg shrink-0" />
